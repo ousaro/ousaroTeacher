@@ -19,7 +19,13 @@ import AddWordScreen from "../screens/AddWordScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import AchievementsScreen from "../screens/AchievementsScreen";
 import StatisticsScreen from "../screens/StatisticsScreen";
+import AboutApp from "../screens/AboutApp";
+
+
 import { useApp } from "../contexts/AppContext";
+import LibraryFiltersScreen from "../screens/LibraryFilterSceen";
+import ErrorSceen from "../screens/ErrorSceen";
+import LoadingScreen from "../screens/LoadingScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -106,10 +112,34 @@ export default function AppNavigator() {
   const { theme } = useTheme();
   const { state } = useApp();
 
+
+  if(state.isLoading) {
+    return (
+      <LoadingScreen/>
+    );
+  }
+
+  if(!state.user) {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen
+            name="Error"
+            component={ErrorSceen}
+            options={{ headerShown: false }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
+
+  const initialRoute = state.user.preferences.firstTimeUser ? "Onboarding" : "Main";
+
+
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName={state.user?.preferences?.firstTimeUser ? "Onboarding" : "Main"}
+        initialRouteName={initialRoute}
         screenOptions={{
           headerStyle: {
             backgroundColor: theme.colors.surface,
@@ -175,6 +205,22 @@ export default function AppNavigator() {
           component={StatisticsScreen}
           options={{
             title: "Statistics",
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="AboutApp"
+          component={AboutApp}
+          options={{
+            title: "About App",
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="LibraryFilters"
+          component={LibraryFiltersScreen}
+          options={{
+            title: "Library Filters",
             headerShown: false,
           }}
         />

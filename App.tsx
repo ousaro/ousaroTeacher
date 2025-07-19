@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppProvider } from "./src/contexts/AppContext";
 import { ThemeProvider, useTheme } from "./src/contexts/ThemeContext";
+import { AlertProvider } from "./src/contexts/AlertContext";
 import AppNavigator from "./src/navigation/AppNavigator";
 
 function AppContent() {
@@ -23,7 +24,9 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <AppProvider>
-            <AppContent />
+            <AlertProvider>
+              <AppContent />
+            </AlertProvider>
           </AppProvider>
         </ThemeProvider>
       </SafeAreaProvider>

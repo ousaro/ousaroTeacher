@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -10,6 +10,7 @@ interface ThemedCardProps {
   onPress?: () => void;
   children?: React.ReactNode;
   variant?: "default" | "elevated" | "outlined";
+  style?: StyleProp<ViewStyle>;
 }
 
 export const ThemedCard: React.FC<ThemedCardProps> = ({
@@ -19,6 +20,7 @@ export const ThemedCard: React.FC<ThemedCardProps> = ({
   onPress,
   children,
   variant = "default",
+  style,
 }) => {
   const { theme } = useTheme();
 
@@ -53,7 +55,7 @@ export const ThemedCard: React.FC<ThemedCardProps> = ({
   const CardComponent = onPress ? TouchableOpacity : View;
 
   return (
-    <CardComponent onPress={onPress} style={getVariantStyles()}>
+    <CardComponent onPress={onPress} style={[getVariantStyles(), style]}>
       {/* Header */}
       <View style={styles.cardHeader}>
         {icon && (
@@ -107,6 +109,7 @@ interface ThemedButtonProps {
   size?: "sm" | "md" | "lg";
   icon?: string;
   disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const ThemedButton: React.FC<ThemedButtonProps> = ({
@@ -116,6 +119,7 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
   size = "md",
   icon,
   disabled = false,
+  style,
 }) => {
   const { theme } = useTheme();
 
@@ -201,6 +205,7 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
       disabled={disabled}
       style={[
         getVariantStyles(),
+        style,
         getSizeStyles(),
         { opacity: disabled ? 0.6 : 1 },
       ]}

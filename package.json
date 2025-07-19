@@ -12,6 +12,7 @@
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-community/slider": "^4.5.7",
     "@react-navigation/bottom-tabs": "^7.4.2",
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/stack": "^7.4.2",
@@ -36,6 +37,8 @@
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "^4.11.1",
+    "react-native-skeleton-placeholder": "^5.2.4",
+    "react-native-slider": "^0.11.0",
     "react-native-super-grid": "^6.0.1",
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5"

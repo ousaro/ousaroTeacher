@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +13,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useApp } from "../contexts/AppContext";
 import { ThemedButton, ThemedCard } from "../components/ThemedComponents";
 import { Word } from "../types";
+import { useAlert } from "../contexts/AlertContext";
 
 interface Props {
   route: any;
@@ -23,6 +23,7 @@ interface Props {
 export default function WordDetailsScreen({ route, navigation }: Props) {
   const { theme, isDark } = useTheme();
   const { state, actions } = useApp();
+  const alert = useAlert();
   const { wordId } = route.params || {};
 
   const [word, setWord] = useState<Word | null>(null);
@@ -36,7 +37,6 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
 
   const toggleFavorite = async () => {
     if (!word) return;
-
     const updatedWord = { ...word, isFavorite: !word.isFavorite };
     await actions.updateWord(word.id, { isFavorite: !word.isFavorite });
     setWord(updatedWord);
@@ -44,7 +44,6 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
 
   const toggleDifficult = async () => {
     if (!word) return;
-
     const updatedWord = { ...word, isMarkedDifficult: !word.isMarkedDifficult };
     await actions.updateWord(word.id, {
       isMarkedDifficult: !word.isMarkedDifficult,
@@ -55,21 +54,16 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
   const deleteWord = async () => {
     if (!word) return;
 
-    Alert.alert(
-      "Delete Word",
-      "Are you sure you want to delete this word? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await actions.deleteWord(word.id);
-            navigation.goBack();
-          },
-        },
-      ],
-    );
+    alert({
+      title: "Delete Word",
+      message: "Are you sure you want to delete this word? This action cannot be undone.",
+      type: 'error',
+      onConfirm: () => {
+        actions.deleteWord(word.id);
+        navigation.goBack();
+      },
+
+    });
   };
 
   const renderDifficultyStars = (difficulty: number) => {
@@ -142,9 +136,20 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Word Details
+       <View style={{ flex: 1, marginHorizontal: 8 }}>
+        <Text
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={[styles.headerTitle, { color: theme.colors.text, textAlign: 'center' }]}
+        >
+          <Text style={{ fontWeight: 'bold', fontSize: 18 }}>
+            {word.translation}
+          </Text>
+          <Text style={{ fontWeight: 'normal', fontSize: 16, color: theme.colors.primary }}>
+            {' - '}{word.text}
+          </Text>
         </Text>
+      </View>
 
         <View style={styles.headerActions}>
           <TouchableOpacity
@@ -167,11 +172,17 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+      >
         {/* Word Card */}
-        <ThemedCard title={word.text} variant="elevated">
+        <ThemedCard title={word.translation} variant="elevated" style={[styles.card]}>
           <View style={styles.wordHeader}>
             <View style={styles.wordInfo}>
+              <Text style={[{ color: theme.colors.primary, marginBottom: 8 }]}>
+                {word.text}
+              </Text>
               {word.pronunciation && (
                 <Text
                   style={[
@@ -223,24 +234,17 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
         </ThemedCard>
 
         {/* Definition */}
-        <ThemedCard title="Definition" icon="book-outline">
-          <Text style={[styles.definition, { color: theme.colors.text }]}>
-            {word.definition}
-          </Text>
-        </ThemedCard>
-
-        {/* Translation */}
-        {word.translation && (
-          <ThemedCard title="Translation" icon="language-outline">
-            <Text style={[styles.translation, { color: theme.colors.text }]}>
-              {word.translation}
+        {word.definition && (
+          <ThemedCard title="Definition" icon="book-outline" style={styles.card}>
+            <Text style={[styles.definition, { color: theme.colors.text }]}>
+              {word.definition}
             </Text>
           </ThemedCard>
         )}
 
         {/* Tags */}
         {word.tags.length > 0 && (
-          <ThemedCard title="Tags" icon="pricetag-outline">
+          <ThemedCard title="Tags" icon="pricetag-outline" style={styles.card}>
             <View style={styles.tagsContainer}>
               {word.tags.map((tag, index) => (
                 <View
@@ -258,7 +262,7 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
         )}
 
         {/* Progress & Stats */}
-        <ThemedCard title="Learning Progress" icon="analytics-outline">
+        <ThemedCard title="Learning Progress" icon="analytics-outline" style={styles.card}>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: theme.colors.text }]}>
@@ -304,7 +308,7 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
 
         {/* Notes */}
         {word.notes && (
-          <ThemedCard title="Notes" icon="document-text-outline">
+          <ThemedCard title="Notes" icon="document-text-outline" style={styles.card}>
             <Text style={[styles.notes, { color: theme.colors.text }]}>
               {word.notes}
             </Text>
@@ -469,13 +473,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
   },
-  sourceBook: {
-    fontSize: 14,
-    fontStyle: "italic",
-  },
   actions: {
     gap: 12,
     marginTop: 16,
     marginBottom: 32,
+  },
+  card: {
+    marginBottom: 16,  // Add bottom margin for spacing between cards
+    borderRadius: 8,   // Optional: Round the card corners for better aesthetics
+    elevation: 2,      // Optional: Elevate effect for card shadow
   },
 });

@@ -11,7 +11,7 @@ export interface Word {
   rarity: number; // How often it appears in practice
   dateAdded: string;
   lastReviewed?: string;
-  reviewCount: number;
+  reviewCount: number; // Number of times reviewed
   correctCount: number; // Number of times answered correctly
   isFavorite: boolean;
   isMarkedDifficult: boolean;
@@ -129,7 +129,12 @@ export type RootStackParamList = {
   Settings: undefined;
   Achievements: undefined;
   Statistics: undefined;
+  AboutApp: undefined;
+  LibraryFilters: undefined;
+  Error:undefined;
+  Loading: undefined;
 };
+
 
 export type TabParamList = {
   Home: undefined;

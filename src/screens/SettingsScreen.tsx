@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
+import { handleExportData, handleImportData, handleResetProgress } from "../utils";
+import { useApp } from "../contexts/AppContext";
+import { useAlert } from "../contexts/AlertContext";
 
 interface Props {
   navigation: any;
@@ -38,7 +41,7 @@ const SettingItem: React.FC<SettingItemProps> = ({
   title,
   subtitle,
   onPress,
-  rightElement,
+  rightElement, // Optional right element like a switch
   theme,
 }) => (
   <TouchableOpacity
@@ -78,8 +81,12 @@ const SettingItem: React.FC<SettingItemProps> = ({
   </TouchableOpacity>
 );
 
+
 export default function SettingsScreen({ navigation }: Props) {
   const { theme, toggleTheme, isDark } = useTheme();
+  const {actions} = useApp();
+  const alert = useAlert();
+
 
   const settingsSections: Array<{
     title: string;
@@ -134,8 +141,17 @@ export default function SettingsScreen({ navigation }: Props) {
           icon: "download",
           title: "Export Data",
           subtitle: "Export your words and progress",
-          onPress: () => {
-            // TODO: Implement data export
+          onPress: async () => {
+            await handleExportData();
+          },
+        },
+        {
+          icon: "cloud-upload-outline",
+          title: "Import Data",
+          subtitle: "Restore from a backup file",
+          onPress: async () => {
+            await handleImportData();
+            actions.loadInitialData();
           },
         },
         {
@@ -143,7 +159,18 @@ export default function SettingsScreen({ navigation }: Props) {
           title: "Reset Progress",
           subtitle: "Clear all learning data",
           onPress: () => {
-            // TODO: Implement data reset with confirmation
+            alert({
+              type: "confirm",
+              title: "Confirm Reset",
+              message: "Are you sure you want to permanently delete all your learning data? This cannot be undone.",
+              confirmText: "Reset",
+              cancelText: "Cancel",
+              onConfirm: async () => {
+                await handleResetProgress();
+                actions.loadInitialData();
+              },
+              onCancel: () => {},
+            })
           },
         },
       ],
@@ -156,15 +183,7 @@ export default function SettingsScreen({ navigation }: Props) {
           title: "About OusaroTeacher",
           subtitle: "Version 1.0.0",
           onPress: () => {
-            // TODO: Navigate to about screen
-          },
-        },
-        {
-          icon: "help-circle",
-          title: "Help & Support",
-          subtitle: "Get help and contact support",
-          onPress: () => {
-            // TODO: Navigate to help screen
+            navigation.navigate("AboutApp");
           },
         },
       ],

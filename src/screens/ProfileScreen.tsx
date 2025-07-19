@@ -19,7 +19,7 @@ interface Props {
 export default function ProfileScreen({ navigation }: Props) {
   const { state } = useApp();
   const { theme, isDark } = useTheme();
-  const { user, words, books, todayStats, currentStreak } = state;
+  const { user, words, todayStats, currentStreak } = state;
 
   const stats = [
     {
@@ -28,13 +28,6 @@ export default function ProfileScreen({ navigation }: Props) {
       description: "Total vocabulary",
       icon: "library-outline",
       color: theme.colors.primary,
-    },
-    {
-      title: "Books Read",
-      value: books.length.toString(),
-      description: "Reading progress",
-      icon: "book-outline",
-      color: theme.colors.success,
     },
     {
       title: "Current Streak",

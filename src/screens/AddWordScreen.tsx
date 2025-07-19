@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TextInput,
   ScrollView,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -15,6 +14,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useApp } from "../contexts/AppContext";
 import { ThemedButton } from "../components/ThemedComponents";
 import { Word } from "../types";
+import { useAlert } from "../contexts/AlertContext";
 
 interface Props {
   route: any;
@@ -24,6 +24,7 @@ interface Props {
 export default function AddWordScreen({ route, navigation }: Props) {
   const { theme, isDark } = useTheme();
   const { state, actions } = useApp();
+  const alert = useAlert();
   const { word: initialWord = "", wordId } = route.params || {};
 
   const [formData, setFormData] = useState({
@@ -59,12 +60,20 @@ export default function AddWordScreen({ route, navigation }: Props) {
 
   const handleSave = async () => {
     if (!formData.text.trim()) {
-      Alert.alert("Error", "Please enter a word");
+      alert({
+        title: "Error",
+        message: "Please enter a word",
+        type: "error",
+      })
       return;
     }
 
     if (!formData.translation.trim()) {
-      Alert.alert("Error", "Please enter a translation");
+      alert({
+        title: "Error",
+        message: "Please enter a translation",
+        type: "error",
+      });
       return;
     }
 
@@ -86,9 +95,12 @@ export default function AddWordScreen({ route, navigation }: Props) {
         };
 
         await actions.updateWord(wordId, updates);
-        Alert.alert("Success", "Word updated successfully!", [
-          { text: "OK", onPress: () => navigation.goBack() },
-        ]);
+        alert({
+          title: "Success",
+          message: "Word updated successfully!",
+          type: "success",
+          onConfirm: () => navigation.goBack(),
+        });
       } else {
         // Create new word
         const newWord: Word = {
@@ -112,9 +124,12 @@ export default function AddWordScreen({ route, navigation }: Props) {
         };
 
         await actions.addWord(newWord);
-        Alert.alert("Success", "Word added successfully!", [
-          { text: "OK", onPress: () => navigation.goBack() },
-        ]);
+        alert({
+          title: "Success",
+          message: "Word added successfully!",
+          type: "success",
+          onConfirm: () => navigation.goBack(),
+        });
         setFormData({
           text: "",
           definition: "",
@@ -126,12 +141,14 @@ export default function AddWordScreen({ route, navigation }: Props) {
         });
       }
     } catch (error) {
-      Alert.alert(
-        "Error",
-        isEditing
+      alert({
+        title: "Error",
+        message: isEditing
           ? "Failed to update word. Please try again."
           : "Failed to add word. Please try again.",
-      );
+        type: "error",
+      })
+
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +196,7 @@ export default function AddWordScreen({ route, navigation }: Props) {
             {/* Word Input */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.colors.text }]}>
-                Word <span style={{ color: theme.colors.error }}> *</span>
+               Word <Text style={{ color: theme.colors.error }}>*</Text>
               </Text>
               <TextInput
                 style={[
@@ -201,7 +218,7 @@ export default function AddWordScreen({ route, navigation }: Props) {
             {/* Translation Input */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.colors.text }]}>
-                Translation <span style={{ color: theme.colors.error }}> *</span>
+                Translation <Text style={{ color: theme.colors.error }}>*</Text>
               </Text>
               <TextInput
                 style={[
