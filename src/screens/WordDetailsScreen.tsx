@@ -311,17 +311,6 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
           </ThemedCard>
         )}
 
-        {/* Source Book */}
-        {word.sourceBook && (
-          <ThemedCard title="Source" icon="library-outline">
-            <Text
-              style={[styles.sourceBook, { color: theme.colors.textSecondary }]}
-            >
-              From: {word.sourceBook}
-            </Text>
-          </ThemedCard>
-        )}
-
         {/* Action Buttons */}
         <View style={styles.actions}>
           <ThemedButton

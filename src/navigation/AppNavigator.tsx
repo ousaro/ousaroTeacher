@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -14,14 +14,12 @@ import LibraryScreen from "../screens/LibraryScreen";
 import PracticeScreen from "../screens/PracticeScreen";
 import AlphabetScreen from "../screens/AlphabetScreen";
 import ProfileScreen from "../screens/ProfileScreen";
-import BookReaderScreen from "../screens/BookReaderScreen";
 import WordDetailsScreen from "../screens/WordDetailsScreen";
 import AddWordScreen from "../screens/AddWordScreen";
-import WordListScreen from "../screens/WordListScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import AchievementsScreen from "../screens/AchievementsScreen";
 import StatisticsScreen from "../screens/StatisticsScreen";
-import NumbersScreen from "../screens/NumbersScreen";
+import { useApp } from "../contexts/AppContext";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -60,7 +58,7 @@ function TabNavigator() {
           borderTopWidth: 1,
           paddingBottom: insets.bottom > 0 ? insets.bottom : 5,
           paddingTop: 8,
-          height: 60 + (insets.bottom > 0 ? insets.bottom : 0),
+          height: 60 + (insets.bottom > 0 ? insets.bottom : 8),
           shadowColor: theme.isDark ? "#000" : "#000",
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: theme.isDark ? 0.3 : 0.1,
@@ -106,11 +104,12 @@ function TabNavigator() {
 
 export default function AppNavigator() {
   const { theme } = useTheme();
+  const { state } = useApp();
 
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Onboarding"
+        initialRouteName={state.user?.preferences?.firstTimeUser ? "Onboarding" : "Main"}
         screenOptions={{
           headerStyle: {
             backgroundColor: theme.colors.surface,
@@ -138,14 +137,7 @@ export default function AppNavigator() {
           component={TabNavigator}
           options={{ headerShown: false }}
         />
-        <Stack.Screen
-          name="BookReader"
-          component={BookReaderScreen}
-          options={{
-            title: "Book Reader",
-            headerShown: false,
-          }}
-        />
+
         <Stack.Screen
           name="WordDetails"
           component={WordDetailsScreen}
@@ -159,14 +151,6 @@ export default function AppNavigator() {
           component={AddWordScreen}
           options={{
             title: "Add Word",
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="WordList"
-          component={WordListScreen}
-          options={{
-            title: "Word List",
             headerShown: false,
           }}
         />
@@ -191,14 +175,6 @@ export default function AppNavigator() {
           component={StatisticsScreen}
           options={{
             title: "Statistics",
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="Numbers"
-          component={NumbersScreen}
-          options={{
-            title: "Numbers",
             headerShown: false,
           }}
         />

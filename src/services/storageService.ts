@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Word,
-  Book,
   FlashCard,
   User,
   GameResult,
@@ -9,6 +8,7 @@ import {
   NumberItem,
   DailyStats,
   PracticeSession,
+  UserPreferences,
 } from "../types";
 
 class StorageService {
@@ -17,7 +17,6 @@ class StorageService {
   // Storage keys
   private readonly keys = {
     WORDS: "@OusaroTeacher:words",
-    BOOKS: "@OusaroTeacher:books",
     FLASHCARDS: "@OusaroTeacher:flashcards",
     USER: "@OusaroTeacher:user",
     GAME_RESULTS: "@OusaroTeacher:gameResults",
@@ -104,28 +103,6 @@ class StorageService {
     await this.saveWords(filteredWords);
   }
 
-  // Book management
-  async saveBooks(books: Book[]): Promise<void> {
-    await this.setItem(this.keys.BOOKS, books);
-  }
-
-  async getBooks(): Promise<Book[]> {
-    const books = await this.getItem<Book[]>(this.keys.BOOKS);
-    return books || [];
-  }
-
-  async addBook(book: Book): Promise<void> {
-    const books = await this.getBooks();
-    books.push(book);
-    await this.saveBooks(books);
-  }
-
-  async deleteBook(bookId: string): Promise<void> {
-    const books = await this.getBooks();
-    const filteredBooks = books.filter((b) => b.id !== bookId);
-    await this.saveBooks(filteredBooks);
-  }
-
   // FlashCard management
   async saveFlashCards(flashCards: FlashCard[]): Promise<void> {
     await this.setItem(this.keys.FLASHCARDS, flashCards);
@@ -162,6 +139,16 @@ class StorageService {
 
   async getUser(): Promise<User | null> {
     return await this.getItem<User>(this.keys.USER);
+  }
+
+  async updateUserPreferences(
+    updates: Partial<UserPreferences>,
+  ): Promise<void> {
+    const user = await this.getUser();
+    if (user) {
+      user.preferences = { ...user.preferences, ...updates };
+      await this.saveUser(user);
+    }
   }
 
   // Game results
@@ -244,7 +231,6 @@ class StorageService {
   async exportData(): Promise<string> {
     const data = {
       words: await this.getWords(),
-      books: await this.getBooks(),
       flashCards: await this.getFlashCards(),
       user: await this.getUser(),
       gameResults: await this.getGameResults(),
@@ -262,7 +248,6 @@ class StorageService {
       const data = JSON.parse(jsonData);
 
       if (data.words) await this.saveWords(data.words);
-      if (data.books) await this.saveBooks(data.books);
       if (data.flashCards) await this.saveFlashCards(data.flashCards);
       if (data.user) await this.saveUser(data.user);
       if (data.alphabetLetters)

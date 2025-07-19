@@ -210,7 +210,7 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
           name={icon as any}
           size={20}
           color={getTextColor()}
-          style={{ marginRight: 8 }}
+          style={{ marginRight: title ? 8 : 0 }}
         />
       )}
       <Text

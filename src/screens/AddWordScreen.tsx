@@ -11,7 +11,6 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useApp } from "../contexts/AppContext";
 import { ThemedButton } from "../components/ThemedComponents";
@@ -25,7 +24,7 @@ interface Props {
 export default function AddWordScreen({ route, navigation }: Props) {
   const { theme, isDark } = useTheme();
   const { state, actions } = useApp();
-  const { word: initialWord = "", bookId, wordId } = route.params || {};
+  const { word: initialWord = "", wordId } = route.params || {};
 
   const [formData, setFormData] = useState({
     text: initialWord,
@@ -64,8 +63,8 @@ export default function AddWordScreen({ route, navigation }: Props) {
       return;
     }
 
-    if (!formData.definition.trim()) {
-      Alert.alert("Error", "Please enter a definition");
+    if (!formData.translation.trim()) {
+      Alert.alert("Error", "Please enter a translation");
       return;
     }
 
@@ -108,7 +107,6 @@ export default function AddWordScreen({ route, navigation }: Props) {
           dateAdded: new Date().toISOString(),
           reviewCount: 0,
           correctCount: 0,
-          sourceBook: bookId,
           isFavorite: false,
           isMarkedDifficult: false,
         };
@@ -117,6 +115,15 @@ export default function AddWordScreen({ route, navigation }: Props) {
         Alert.alert("Success", "Word added successfully!", [
           { text: "OK", onPress: () => navigation.goBack() },
         ]);
+        setFormData({
+          text: "",
+          definition: "",
+          translation: "",
+          notes: "",
+          tags: "",
+          pronunciation: "",
+          difficulty: 3 as 1 | 2 | 3 | 4 | 5,
+        });
       }
     } catch (error) {
       Alert.alert(
@@ -172,7 +179,7 @@ export default function AddWordScreen({ route, navigation }: Props) {
             {/* Word Input */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.colors.text }]}>
-                Word *
+                Word <span style={{ color: theme.colors.error }}> *</span>
               </Text>
               <TextInput
                 style={[
@@ -191,35 +198,10 @@ export default function AddWordScreen({ route, navigation }: Props) {
               />
             </View>
 
-            {/* Definition Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>
-                Definition *
-              </Text>
-              <TextInput
-                style={[
-                  styles.textArea,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.border,
-                    color: theme.colors.text,
-                  },
-                ]}
-                value={formData.definition}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, definition: text })
-                }
-                placeholder="Enter the definition"
-                placeholderTextColor={theme.colors.textSecondary}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-
             {/* Translation Input */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.colors.text }]}>
-                Translation
+                Translation <span style={{ color: theme.colors.error }}> *</span>
               </Text>
               <TextInput
                 style={[
@@ -234,8 +216,33 @@ export default function AddWordScreen({ route, navigation }: Props) {
                 onChangeText={(text) =>
                   setFormData({ ...formData, translation: text })
                 }
-                placeholder="Enter translation (optional)"
+                placeholder="Enter translation"
                 placeholderTextColor={theme.colors.textSecondary}
+              />
+            </View>
+
+            {/* Definition Input */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: theme.colors.text }]}>
+                Definition
+              </Text>
+              <TextInput
+                style={[
+                  styles.textArea,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    color: theme.colors.text,
+                  },
+                ]}
+                value={formData.definition}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, definition: text })
+                }
+                placeholder="Enter the definition (optional)"
+                placeholderTextColor={theme.colors.textSecondary}
+                multiline
+                numberOfLines={3}
               />
             </View>
 

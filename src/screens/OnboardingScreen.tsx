@@ -30,47 +30,39 @@ const onboardingData = [
     title: "Welcome to OusaroTeacher",
     subtitle: "Your Personal Language Learning Companion",
     description:
-      "Learn languages through interactive books, flashcards, and engaging mini-games.",
+      "Learn languages through interactive flashcards, and engaging mini-games.",
     icon: "book-outline",
-    gradient: ["#667eea", "#764ba2"],
+    gradient: ["#1e3c72", "#2a5298"], // Deep blue gradient
   },
   {
     id: 2,
-    title: "Upload & Read Books",
-    subtitle: "Learn from Your Favorite Content",
-    description:
-      "Upload any text file and start learning by selecting words directly from the content.",
-    icon: "cloud-upload-outline",
-    gradient: ["#f093fb", "#f5576c"],
-  },
-  {
-    id: 3,
     title: "Build Your Vocabulary",
-    subtitle: "Save Words with Context",
+    subtitle: "Save Words and Phrases",
     description:
       "Add definitions, translations, notes, and practice with intelligent spaced repetition.",
     icon: "library-outline",
-    gradient: ["#4facfe", "#00f2fe"],
+    gradient: ["#1f4037", "#99f2c8"], // Dark green to mint
   },
   {
-    id: 4,
+    id: 3,
     title: "Practice & Play",
     subtitle: "Master Through Mini-Games",
     description:
       "Enjoy flashcards, matching games, quizzes, and more to reinforce your learning.",
     icon: "game-controller-outline",
-    gradient: ["#43e97b", "#38f9d7"],
+    gradient: ["#373B44", "#4286f4"], // Charcoal to vibrant blue
   },
   {
-    id: 5,
+    id: 4,
     title: "Track Progress",
     subtitle: "Stay Motivated with Achievements",
     description:
       "Monitor your learning journey with streaks, statistics, and unlock achievements.",
     icon: "trophy-outline",
-    gradient: ["#fa709a", "#fee140"],
+    gradient: ["#42275a", "#734b6d"], // Dark purple gradient
   },
 ];
+
 
 export default function OnboardingScreen({ navigation }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -79,8 +71,6 @@ export default function OnboardingScreen({ navigation }: Props) {
   const handleNext = () => {
     if (currentIndex < onboardingData.length - 1) {
       setCurrentIndex(currentIndex + 1);
-    } else {
-      handleGetStarted();
     }
   };
 
@@ -92,6 +82,9 @@ export default function OnboardingScreen({ navigation }: Props) {
 
   const handleGetStarted = async () => {
     await actions.createDefaultUser();
+    await actions.updateUserPreferences({
+      firstTimeUser: false,
+    });
     navigation.replace("Main");
   };
 
@@ -100,7 +93,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar
-        barStyle="light-content"
+        barStyle="dark-content"
         backgroundColor="transparent"
         translucent
       />
@@ -164,14 +157,13 @@ export default function OnboardingScreen({ navigation }: Props) {
 
           {/* Navigation Buttons */}
           <View style={styles.navigation}>
+
             <TouchableOpacity
               onPress={handlePrevious}
               disabled={currentIndex === 0}
               style={[
                 styles.navButton,
-                currentIndex === 0
-                  ? styles.disabledButton
-                  : styles.enabledButton,
+                currentIndex === 0 && styles.disabledButton,
               ]}
             >
               <Ionicons name="chevron-back" size={24} color="white" />
@@ -181,13 +173,14 @@ export default function OnboardingScreen({ navigation }: Props) {
               {currentIndex + 1} of {onboardingData.length}
             </Text>
 
-            <TouchableOpacity onPress={handleNext} style={styles.enabledButton}>
-              {currentIndex === onboardingData.length - 1 ? (
-                <Ionicons name="checkmark" size={24} color="white" />
-              ) : (
-                <Ionicons name="chevron-forward" size={24} color="white" />
-              )}
+            <TouchableOpacity 
+              onPress={handleNext} 
+              style={[
+                styles.navButton,
+                currentIndex === onboardingData.length - 1 && styles.disabledButton ]}>
+              <Ionicons name="chevron-forward" size={24} color="white" />
             </TouchableOpacity>
+            
           </View>
 
           {/* Get Started Button (only on last screen) */}
@@ -241,6 +234,9 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     alignItems: "center",
+    justifyContent: "center",
+    height: 480,
+    width: "100%",
   },
   iconContainer: {
     backgroundColor: "rgba(255, 255, 255, 0.2)",

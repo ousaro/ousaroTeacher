@@ -12,27 +12,11 @@ export interface Word {
   dateAdded: string;
   lastReviewed?: string;
   reviewCount: number;
-  correctCount: number;
-  sourceBook?: string;
+  correctCount: number; // Number of times answered correctly
   isFavorite: boolean;
   isMarkedDifficult: boolean;
 }
 
-export interface Book {
-  id: string;
-  title: string;
-  content: string;
-  dateAdded: string;
-  wordCount: number;
-  wordsExtracted: number;
-  language: string;
-  author?: string;
-  fileType?: "text" | "pdf";
-  fileUri?: string;
-  totalWords?: number;
-  readingProgress?: number;
-  uri?: string;
-}
 
 export interface FlashCard {
   id: string;
@@ -42,8 +26,8 @@ export interface FlashCard {
   difficulty: 1 | 2 | 3 | 4 | 5;
   nextReview: string;
   interval: number; // Days until next review
-  easeFactor: number;
-  reviewCount: number;
+  easeFactor: number; // How easy the word is to remember
+  reviewCount: number; // Number of times reviewed
 }
 
 export interface User {
@@ -77,6 +61,7 @@ export interface UserPreferences {
   practiceMode: "flashcards" | "games" | "mixed";
   autoPlayAudio: boolean;
   showTranslations: boolean;
+  firstTimeUser: boolean;
 }
 
 export interface GameResult {
@@ -135,11 +120,10 @@ export interface PracticeSession {
 export type RootStackParamList = {
   Onboarding: undefined;
   Main: undefined;
-  BookReader: { bookId: string };
   WordDetails: { wordId: string };
   AddWord: { word?: string; bookId?: string };
   WordList: undefined;
-  Practice: { practiceType?: "hiragana" | "numbers" | "words" };
+  Practice: { practiceType?: "hiragana" | "katakana" | "kanji" | "numbers" | "words" };
   Japanese: { language?: string };
   Numbers: { language?: string };
   Settings: undefined;

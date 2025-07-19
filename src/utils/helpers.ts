@@ -49,42 +49,6 @@ export const getDifficultyText = (difficulty: 1 | 2 | 3 | 4 | 5): string => {
   return texts[difficulty];
 };
 
-export const parseTextIntoWords = (text: string): string[] => {
-  // Remove punctuation and split into words
-  const words = text
-    .toLowerCase()
-    .replace(/[^\w\s]/gi, " ")
-    .split(/\s+/)
-    .filter((word) => word.length > 2) // Only words longer than 2 characters
-    .filter((word, index, array) => array.indexOf(word) === index); // Remove duplicates
-
-  return words;
-};
-
-export const extractWordsFromBook = (
-  content: string,
-  bookTitle: string,
-): Word[] => {
-  const words = parseTextIntoWords(content);
-
-  return words.map((word) => ({
-    id: generateId(),
-    text: word,
-    definition: "",
-    translation: "",
-    notes: "",
-    tags: [],
-    difficulty: 3 as const,
-    progress: 0,
-    rarity: Math.floor(Math.random() * 10) + 1, // Random rarity for now
-    dateAdded: new Date().toISOString(),
-    reviewCount: 0,
-    correctCount: 0,
-    sourceBook: bookTitle,
-    isFavorite: false,
-    isMarkedDifficult: false,
-  }));
-};
 
 export const createFlashCardFromWord = (word: Word): FlashCard => {
   return {
@@ -120,7 +84,7 @@ export const calculateNextReview = (
     }
   }
 
-  // Update ease factor
+  // Update ease factor (helpful for adjusting difficulty)
   easeFactor =
     easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
   if (easeFactor < 1.3) easeFactor = 1.3;
@@ -187,15 +151,12 @@ export const calculateStreak = (
   return streak;
 };
 
-export const validateEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
+// debounce function to limit how often a function can be called
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
   wait: number,
 ): ((...args: Parameters<T>) => void) => {
+  
   let timeout: NodeJS.Timeout;
 
   return (...args: Parameters<T>) => {
@@ -204,6 +165,7 @@ export const debounce = <T extends (...args: any[]) => any>(
   };
 };
 
+// truncate text to a maximum length and add ellipsis if needed
 export const truncateText = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + "...";
@@ -255,7 +217,7 @@ const calculateWordWeight = (word: Word): number => {
   weight += (100 - word.progress) * 0.5;
 
   // Less reviewed = higher weight
-  weight += Math.max(0, 20 - word.reviewCount) * 2;
+  weight += Math.max(0, 20 - word.reviewCount) * 2; //20 is the max review count
 
   // More difficult = slightly higher weight
   weight += word.difficulty * 5;

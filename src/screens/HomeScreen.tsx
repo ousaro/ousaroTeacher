@@ -16,8 +16,6 @@ import { useApp } from "../contexts/AppContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { formatTime } from "../utils/helpers";
 
-const { width } = Dimensions.get("window");
-
 interface Props {
   navigation: any;
 }
@@ -43,7 +41,7 @@ export default function HomeScreen({ navigation }: Props) {
   const recentWords = words
     .sort(
       (a, b) =>
-        new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime(),
+        new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
     )
     .slice(0, 5);
 
@@ -56,7 +54,7 @@ export default function HomeScreen({ navigation }: Props) {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       <StatusBar
-        barStyle={theme.isDark ? "light-content" : "light-content"}
+        barStyle={theme.isDark ? "light-content" : "dark-content"}
         backgroundColor="transparent"
         translucent
       />
@@ -163,7 +161,7 @@ export default function HomeScreen({ navigation }: Props) {
               </View>
 
               {/* Progress Bar */}
-              <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBarContainer, { backgroundColor: theme.colors.border }]}>
                 <Animatable.View
                   animation="slideInLeft"
                   duration={1200}
@@ -275,24 +273,6 @@ export default function HomeScreen({ navigation }: Props) {
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               Quick Actions
             </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("WordList")}
-              style={[
-                styles.viewAllButton,
-                { backgroundColor: theme.colors.primary + "20" },
-              ]}
-            >
-              <Text
-                style={[styles.viewAllText, { color: theme.colors.primary }]}
-              >
-                View Words
-              </Text>
-              <Ionicons
-                name="arrow-forward"
-                size={16}
-                color={theme.colors.primary}
-              />
-            </TouchableOpacity>
           </View>
 
           <View style={styles.quickActions}>
@@ -369,47 +349,7 @@ export default function HomeScreen({ navigation }: Props) {
                       { color: theme.colors.textSecondary },
                     ]}
                   >
-                    Read books & PDFs
-                  </Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </Animatable.View>
-
-            <Animatable.View
-              animation="fadeInLeft"
-              delay={800}
-              style={styles.actionRow}
-            >
-              <TouchableOpacity
-                onPress={() => navigation.navigate("AddWord")}
-                style={[
-                  styles.actionCard,
-                  { backgroundColor: theme.colors.surface },
-                ]}
-              >
-                <View
-                  style={[styles.actionIcon, { backgroundColor: "#f093fb" }]}
-                >
-                  <Ionicons name="add-circle-outline" size={24} color="white" />
-                </View>
-                <View style={styles.actionContent}>
-                  <Text
-                    style={[styles.actionText, { color: theme.colors.text }]}
-                  >
-                    Add Word
-                  </Text>
-                  <Text
-                    style={[
-                      styles.actionSubtext,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    Expand vocabulary
+                    Manage your words and sentences
                   </Text>
                 </View>
                 <Ionicons
@@ -425,7 +365,7 @@ export default function HomeScreen({ navigation }: Props) {
         {/* Japanese Learning Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Japanese Learning
+            Japanese Basics
           </Text>
           <View style={styles.quickActions}>
             <Animatable.View
@@ -467,98 +407,19 @@ export default function HomeScreen({ navigation }: Props) {
                 />
               </TouchableOpacity>
             </Animatable.View>
-
-            <Animatable.View
-              animation="fadeInLeft"
-              delay={900}
-              style={styles.actionRow}
-            >
-              <TouchableOpacity
-                onPress={() => navigation.navigate("Numbers")}
-                style={[
-                  styles.actionCard,
-                  { backgroundColor: theme.colors.surface },
-                ]}
-              >
-                <View
-                  style={[styles.actionIcon, { backgroundColor: "#43e97b" }]}
-                >
-                  <Ionicons name="calculator-outline" size={24} color="white" />
-                </View>
-                <View style={styles.actionContent}>
-                  <Text
-                    style={[styles.actionText, { color: theme.colors.text }]}
-                  >
-                    Numbers
-                  </Text>
-                  <Text
-                    style={[
-                      styles.actionSubtext,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    Japanese numerals
-                  </Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </Animatable.View>
           </View>
         </View>
 
         {/* Empty State or Recent Words */}
-        {words.length === 0 ? (
-          <Animatable.View
-            animation="fadeIn"
-            delay={800}
-            style={styles.emptyState}
-          >
-            <View
-              style={[
-                styles.emptyIconContainer,
-                { backgroundColor: theme.colors.primary + "20" },
-              ]}
-            >
-              <Ionicons
-                name="library-outline"
-                size={60}
-                color={theme.colors.primary}
-              />
-            </View>
-            <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-              Ready to start learning?
-            </Text>
-            <Text
-              style={[
-                styles.emptyDescription,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              Upload your first book and discover new words through interactive
-              reading
-            </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Library")}
-              style={[
-                styles.emptyButton,
-                { backgroundColor: theme.colors.primary },
-              ]}
-            >
-              <Text style={styles.emptyButtonText}>Get Started</Text>
-            </TouchableOpacity>
-          </Animatable.View>
-        ) : (
+        {words.length !== 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
                 Recent Words
               </Text>
+
               <TouchableOpacity
-                onPress={() => navigation.navigate("WordList")}
+                onPress={() => navigation.navigate("Library")}
                 style={[
                   styles.viewAllButton,
                   { backgroundColor: theme.colors.primary + "20" },
@@ -606,17 +467,8 @@ export default function HomeScreen({ navigation }: Props) {
                     >
                       {word.text}
                     </Text>
+                   
                     <Text
-                      style={[
-                        styles.actionSubtext,
-                        { color: theme.colors.textSecondary },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {word.definition}
-                    </Text>
-                    {word.translation && (
-                      <Text
                         style={[
                           styles.actionSubtext,
                           { color: theme.colors.primary },
@@ -625,7 +477,17 @@ export default function HomeScreen({ navigation }: Props) {
                       >
                         {word.translation}
                       </Text>
-                    )}
+                     {word.definition && (
+                      <Text
+                      style={[
+                        styles.actionSubtext,
+                        { color: theme.colors.textSecondary },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {word.definition}
+                    </Text>
+                     )}
                   </View>
                   <Ionicons
                     name="chevron-forward"
@@ -638,6 +500,14 @@ export default function HomeScreen({ navigation }: Props) {
           </View>
         )}
       </ScrollView>
+
+      {/* floating Add Word Button  always visible */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate("AddWord")}
+        style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+      >
+        <Ionicons name="add" size={32} color="white" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -761,6 +631,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: "bold",
+    marginBottom: 10,
   },
   viewAllButton: {
     flexDirection: "row",
@@ -881,5 +752,20 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  actionButton: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
 });
