@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   StyleSheet,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -84,8 +85,14 @@ const SettingItem: React.FC<SettingItemProps> = ({
 
 export default function SettingsScreen({ navigation }: Props) {
   const { theme, toggleTheme, isDark } = useTheme();
-  const {actions} = useApp();
+  const {actions, state} = useApp();
+  const {user}  = state;
   const alert = useAlert();
+  const [dailyGoal, setDailyGoal] = useState(user?.dailyGoal || 0);
+  const [dailyGoalModalVisible, setDailyGoalModalVisible] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationTime, setNotificationTime] = useState(new Date());
+  const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
 
 
   const settingsSections: Array<{
@@ -121,7 +128,7 @@ export default function SettingsScreen({ navigation }: Props) {
           title: "Daily Goal",
           subtitle: "Set your daily learning target",
           onPress: () => {
-            // TODO: Navigate to daily goal settings
+            setDailyGoalModalVisible(true);
           },
         },
         {
@@ -129,7 +136,7 @@ export default function SettingsScreen({ navigation }: Props) {
           title: "Notifications",
           subtitle: "Manage your learning reminders",
           onPress: () => {
-            // TODO: Navigate to notifications settings
+            setNotificationsModalVisible(true);
           },
         },
       ],
@@ -256,6 +263,101 @@ export default function SettingsScreen({ navigation }: Props) {
         {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+
+      {/* Daily Goal Modal */}
+      {dailyGoalModalVisible && (
+        <View style={[styles.modalContainer]}>
+          <View style={[styles.modalContent,
+           {borderBottomColor: theme.colors.border,
+            backgroundColor: theme.colors.card, }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Set Daily Goal</Text>
+            <TextInput
+              style={[styles.modalInput, { color: theme.colors.text }]}
+              keyboardType="numeric"
+              placeholder="Enter your daily goal"
+              value={dailyGoal.toString()}
+              onChangeText={(text) => setDailyGoal(Number(text))}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setDailyGoalModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  // TODO: Save the daily goal
+
+                  setDailyGoalModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}  
+
+      {/* Notifications Modal */}
+      {notificationsModalVisible && (
+        <View style={[styles.modalContainer]}>
+          <View style={[styles.modalContent,
+           {borderBottomColor: theme.colors.border,
+            backgroundColor: theme.colors.card, }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Notifications</Text>
+             <Switch
+              value={notificationsEnabled}
+              onValueChange={setNotificationsEnabled}
+              trackColor={{
+                false: theme.colors.border,
+                true: theme.colors.primary,
+              }}
+              thumbColor={notificationsEnabled ? "#ffffff" : "#f4f3f4"}
+            />
+            { /* Time picker can be added here for selecting notification time */ }
+            <TextInput
+              style={[styles.modalInput, { color: theme.colors.text }]}
+              placeholder="Set notification time"
+              value={notificationTime.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+              onChangeText={(text) => {
+                const [hours, minutes] = text.split(':').map(Number);
+                const newTime = new Date(notificationTime);
+                newTime.setHours(hours, minutes, 0);
+                setNotificationTime(newTime);
+              }}
+            />
+           
+
+            <Text style={[styles.itemSubtitle, { color: theme.colors.textSecondary }]}>
+              Enable notifications for learning reminders
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setNotificationsModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => {
+                  // TODO: Save the notifications settings
+
+                  setNotificationsModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -325,4 +427,54 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 32,
   },
+  modalContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 24,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  modalInput: {
+    width: "100%",
+    height: 40,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 4,
+    backgroundColor: "#007bff",
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+  },  
 });

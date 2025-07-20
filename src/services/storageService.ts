@@ -9,6 +9,7 @@ import {
   DailyStats,
   PracticeSession,
   UserPreferences,
+  CharacterGroup,
 } from "../types";
 
 class StorageService {
@@ -64,7 +65,7 @@ class StorageService {
     }
   }
 
-  // Word management
+  // Word management (existing methods)
   async saveWords(words: Word[]): Promise<void> {
     await this.setItem(this.keys.WORDS, words);
   }
@@ -103,7 +104,149 @@ class StorageService {
     await this.saveWords(filteredWords);
   }
 
-  // FlashCard management
+  // Enhanced Alphabet Letters management
+  async getAlphabetLetters(): Promise<CharacterGroup[]> {
+    const letters = await this.getItem<CharacterGroup[]>(this.keys.ALPHABET_LETTERS);
+    return letters || [];
+  }
+
+  async saveAlphabetLetters(letters: CharacterGroup[]): Promise<void> {
+    console.log("Saving alphabet letters:", letters);
+    await this.setItem(this.keys.ALPHABET_LETTERS, letters);
+  }
+
+ async initializeAlphabetLetters(alphabetData: CharacterGroup[], language: string): Promise<void> {
+    const existingGroups = await this.getAlphabetLetters();
+    
+    // Check if letters for this language already exist by flattening all characters
+    const existingCharacters = existingGroups
+      .filter(group => group.language === language)
+    
+    if (existingCharacters.length === 0) {
+      // Convert alphabet data to CharacterGroup objects
+      const newGroups: CharacterGroup[] = alphabetData.map((item, groupIndex) => ({
+        groupName: item.groupName,
+        language: language,
+        characters: item.characters?.map((char: AlphabetLetter | null, charIndex: number): AlphabetLetter => ({
+          id: `${language}_${char?.character}_${Date.now()}_${groupIndex}_${charIndex}`,
+          character: char?.character || "",
+          name: char?.name || "",
+          pronunciation: char?.pronunciation || "",
+          example: char?.example || "",
+          progress: 0, // Start with 0 progress
+          language: language,
+          audioUrl: char?.audioUrl || "", // Can be undefined
+        }))
+      }));
+
+      // Combine with existing groups from other languages
+      const allGroups = [...existingGroups, ...newGroups];
+      await this.saveAlphabetLetters(allGroups);
+    }
+  }
+
+async updateAlphabetLetter(letterId: string, updates: Partial<AlphabetLetter>): Promise<void> {
+    const groups = await this.getAlphabetLetters();
+    
+    // Find the group and character index
+    for (const group of groups) {
+      const characterIndex = group.characters.findIndex(
+        (char): char is AlphabetLetter => char !== null && char.id === letterId
+      );
+      
+      if (characterIndex >= 0) {
+        const existingCharacter = group.characters[characterIndex] as AlphabetLetter;
+        group.characters[characterIndex] = { ...existingCharacter, ...updates };
+        await this.saveAlphabetLetters(groups);
+        return;
+      }
+    }
+  }
+
+  async updateAlphabetProgress(letterId: string, progressIncrement: number = 10): Promise<void> {
+    const groups = await this.getAlphabetLetters();
+    
+    // Find the group and character index
+    for (const group of groups) {
+      const characterIndex = group.characters.findIndex(
+        (char): char is AlphabetLetter => char !== null && char.id === letterId
+      );
+      
+      if (characterIndex >= 0) {
+        const character = group.characters[characterIndex] as AlphabetLetter;
+        const currentProgress = character.progress || 0;
+        const newProgress = Math.min(100, currentProgress + progressIncrement);
+        
+        group.characters[characterIndex] = { ...character, progress: newProgress };
+        await this.saveAlphabetLetters(groups);
+        return;
+      }
+    }
+  }
+
+
+  // Enhanced Numbers management
+  async getNumbers(): Promise<NumberItem[]> {
+    const numbers = await this.getItem<NumberItem[]>(this.keys.NUMBERS);
+    return numbers || [];
+  }
+
+  async saveNumbers(numbers: NumberItem[]): Promise<void> {
+    await this.setItem(this.keys.NUMBERS, numbers);
+  }
+
+  async initializeNumbers(numberData: NumberItem[], language: string): Promise<void> {
+    const existingNumbers = await this.getNumbers();
+    
+    // Check if numbers for this language already exist
+    const existingForLanguage = existingNumbers.filter(n => n.language === language);
+    
+    if (existingForLanguage.length === 0) {
+      // Convert number data to NumberItem objects
+      const newNumbers: NumberItem[] = numberData.map((item, index) => ({
+        id: `${language}_${item.number}_${Date.now()}_${index}`,
+        number: item.number,
+        text: item.text,
+        pronunciation: item.pronunciation,
+        progress: 0, // Start with 0 progress
+        language: language,
+        audioUrl: undefined, // Can be added later
+      }));
+
+      // Combine with existing numbers from other languages
+      const allNumbers = [...existingNumbers, ...newNumbers];
+      await this.saveNumbers(allNumbers);
+    }
+  }
+
+  async updateNumber(numberId: string, updates: Partial<NumberItem>): Promise<void> {
+    const numbers = await this.getNumbers();
+    const index = numbers.findIndex((n) => n.id === numberId);
+
+    if (index >= 0) {
+      numbers[index] = { ...numbers[index], ...updates };
+      await this.saveNumbers(numbers);
+    }
+  }
+
+  async updateNumberProgress(numberId: string, progressIncrement: number = 10): Promise<void> {
+    const numbers = await this.getNumbers();
+    const index = numbers.findIndex((n) => n.id === numberId);
+
+    if (index >= 0) {
+      const currentProgress = numbers[index].progress || 0;
+      const newProgress = Math.min(100, currentProgress + progressIncrement);
+      numbers[index].progress = newProgress;
+      await this.saveNumbers(numbers);
+    }
+  }
+
+  async getNumbersByLanguage(language: string): Promise<NumberItem[]> {
+    const allNumbers = await this.getNumbers();
+    return allNumbers.filter(number => number.language === language);
+  }
+
+  // FlashCard management (existing methods)
   async saveFlashCards(flashCards: FlashCard[]): Promise<void> {
     await this.setItem(this.keys.FLASHCARDS, flashCards);
   }
@@ -132,7 +275,7 @@ class StorageService {
     }
   }
 
-  // User management
+  // User management (existing methods)
   async saveUser(user: User): Promise<void> {
     await this.setItem(this.keys.USER, user);
   }
@@ -151,7 +294,7 @@ class StorageService {
     }
   }
 
-  // Game results
+  // Game results (existing methods)
   async saveGameResult(result: GameResult): Promise<void> {
     const results =
       (await this.getItem<GameResult[]>(this.keys.GAME_RESULTS)) || [];
@@ -164,7 +307,7 @@ class StorageService {
     return results || [];
   }
 
-  // Daily stats
+  // Daily stats (existing methods)
   async saveDailyStats(stats: DailyStats): Promise<void> {
     const allStats =
       (await this.getItem<DailyStats[]>(this.keys.DAILY_STATS)) || [];
@@ -184,29 +327,7 @@ class StorageService {
     return stats || [];
   }
 
-  // Alphabet letters
-  async saveAlphabetLetters(letters: AlphabetLetter[]): Promise<void> {
-    await this.setItem(this.keys.ALPHABET_LETTERS, letters);
-  }
-
-  async getAlphabetLetters(): Promise<AlphabetLetter[]> {
-    const letters = await this.getItem<AlphabetLetter[]>(
-      this.keys.ALPHABET_LETTERS,
-    );
-    return letters || [];
-  }
-
-  // Numbers
-  async saveNumbers(numbers: NumberItem[]): Promise<void> {
-    await this.setItem(this.keys.NUMBERS, numbers);
-  }
-
-  async getNumbers(): Promise<NumberItem[]> {
-    const numbers = await this.getItem<NumberItem[]>(this.keys.NUMBERS);
-    return numbers || [];
-  }
-
-  // Practice sessions
+  // Practice sessions (existing methods)
   async savePracticeSession(session: PracticeSession): Promise<void> {
     const sessions =
       (await this.getItem<PracticeSession[]>(this.keys.PRACTICE_SESSIONS)) ||
@@ -222,7 +343,7 @@ class StorageService {
     return sessions || [];
   }
 
-  // Utility methods
+  // Utility methods (existing methods)
   async clearAllData(): Promise<void> {
     const allKeys = Object.values(this.keys);
     await AsyncStorage.multiRemove(allKeys);

@@ -86,6 +86,12 @@ export interface AlphabetLetter {
   language: string;
 }
 
+export interface CharacterGroup {
+  groupName: string;
+  language: string;
+  characters: (AlphabetLetter | null)[]; 
+}
+
 export interface NumberItem {
   id: string;
   number: number;
@@ -94,6 +100,7 @@ export interface NumberItem {
   audioUrl?: string;
   progress: number;
   language: string;
+  
 }
 
 export interface DailyStats {
@@ -143,3 +150,5 @@ export type TabParamList = {
   Japanese: undefined;
   Profile: undefined;
 };
+
+

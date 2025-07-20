@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   resetText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
   },
   content: {

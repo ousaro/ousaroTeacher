@@ -23,7 +23,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
   const stats = [
     {
-      title: "Words Learned",
+      title: "Total Words",
       value: words.length.toString(),
       description: "Total vocabulary",
       icon: "library-outline",

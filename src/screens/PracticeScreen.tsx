@@ -7,9 +7,9 @@ import {
   Alert,
   StatusBar,
   StyleSheet,
-  SafeAreaView,
   Dimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
@@ -21,6 +21,7 @@ import {
   generateId,
 } from "../utils/helpers";
 import { Word, GameResult } from "../types";
+import { useAlert } from "../contexts/AlertContext";
 
 interface Props {
   navigation: any;
@@ -29,8 +30,11 @@ interface Props {
 
 export default function PracticeScreen({ navigation, route }: Props) {
   const { state, actions } = useApp();
-  const { theme, isDark } = useTheme();
-  const { words, user } = state;
+  const alert = useAlert();
+  const { theme } = useTheme();
+
+
+  const { words } = state;
   const [practiceWords, setPracticeWords] = useState<Word[]>([]);
   const [currentGame, setCurrentGame] = useState<any>(null);
   const [gameState, setGameState] = useState<any>({});
@@ -38,63 +42,84 @@ export default function PracticeScreen({ navigation, route }: Props) {
   // Get practice type from route params
   const practiceType = route?.params?.practiceType;
 
-  // Theme-based game types
+  // Modern game types with improved categorization
   const getGameTypes = () => [
     {
       id: "flashcards",
       title: "Flashcards",
-      subtitle: "Review with spaced repetition",
-      icon: "flash-outline",
-      gradient: theme.gradients.primary,
-      description: "Practice words with traditional flashcards",
+      subtitle: "Spaced repetition learning",
+      icon: "layers-outline",
+      gradient: ["#667eea", "#764ba2"],
+      description: "Master vocabulary with proven spaced repetition technique",
+      category: "Memory",
+      difficulty: "Beginner",
+      estimatedTime: "5-10 min",
     },
     {
       id: "multiple-choice",
-      title: "Multiple Choice",
-      subtitle: "Choose the correct definition",
-      icon: "list-outline",
-      gradient: theme.gradients.secondary,
-      description: "Select the right answer from options",
+      title: "Quick Quiz",
+      subtitle: "Multiple choice questions",
+      icon: "checkmark-circle-outline",
+      gradient: ["#f093fb", "#f5576c"],
+      description: "Test your knowledge with instant feedback",
+      category: "Assessment",
+      difficulty: "Beginner",
+      estimatedTime: "3-5 min",
     },
     {
       id: "fill-blank",
-      title: "Fill the Blank",
-      subtitle: "Complete the sentence",
-      icon: "create-outline",
-      gradient: theme.gradients.accent,
-      description: "Fill in missing words in sentences",
+      title: "Context Builder",
+      subtitle: "Fill in the blanks",
+      icon: "text-outline",
+      gradient: ["#4facfe", "#00f2fe"],
+      description: "Learn words in context with sentence completion",
+      category: "Context",
+      difficulty: "Intermediate",
+      estimatedTime: "5-8 min",
     },
     {
       id: "matching",
-      title: "Matching Game",
-      subtitle: "Connect words with meanings",
-      icon: "link-outline",
-      gradient: [theme.colors.success, "#059669"],
-      description: "Match words with their definitions",
+      title: "Word Match",
+      subtitle: "Connect definitions",
+      icon: "swap-horizontal-outline",
+      gradient: ["#10b981", "#059669"],
+      description: "Match terms with their meanings quickly",
+      category: "Speed",
+      difficulty: "Intermediate",
+      estimatedTime: "3-6 min",
     },
     {
       id: "spelling",
-      title: "Spelling Challenge",
-      subtitle: "Type the correct spelling",
-      icon: "text-outline",
-      gradient: [theme.colors.warning, "#d97706"],
-      description: "Spell words correctly from audio",
+      title: "Spelling Master",
+      subtitle: "Type correct spelling",
+      icon: "create-outline",
+      gradient: ["#f59e0b", "#d97706"],
+      description: "Perfect your spelling with audio pronunciation",
+      category: "Writing",
+      difficulty: "Advanced",
+      estimatedTime: "5-10 min",
     },
     {
       id: "hiragana-practice",
-      title: "Hiragana Practice",
-      subtitle: "Learn Japanese characters",
+      title: "Hiragana Focus",
+      subtitle: "Japanese character mastery",
       icon: "language-outline",
-      gradient: theme.gradients.primary,
-      description: "Practice Hiragana characters and pronunciation",
+      gradient: ["#8b5cf6", "#7c3aed"],
+      description: "Master Hiragana characters with stroke practice",
+      category: "Language",
+      difficulty: "Beginner",
+      estimatedTime: "10-15 min",
     },
     {
       id: "numbers-practice",
-      title: "Numbers Practice",
-      subtitle: "Learn Japanese numbers",
+      title: "Number System",
+      subtitle: "Japanese numerals",
       icon: "calculator-outline",
-      gradient: theme.gradients.secondary,
-      description: "Practice Japanese numbers in Kanji and Hiragana",
+      gradient: ["#ef4444", "#dc2626"],
+      description: "Learn Japanese counting and number systems",
+      category: "Language",
+      difficulty: "Intermediate",
+      estimatedTime: "8-12 min",
     },
   ];
 
@@ -116,11 +141,12 @@ export default function PracticeScreen({ navigation, route }: Props) {
   }, [words, practiceType]);
 
   const startGame = (gameType: string) => {
-    if (practiceWords.length === 0) {
-      Alert.alert(
-        "No Words Available",
-        "Add some words to your vocabulary first before practicing.",
-      );
+    if (practiceWords.length === 0 && !["hiragana-practice", "numbers-practice"].includes(gameType)) {
+      alert({
+        title: "No Words Available",
+        message: "Add some words to your vocabulary first before practicing.",
+        onConfirm: () => navigation.navigate("Library"),
+      })
       return;
     }
 
@@ -260,9 +286,12 @@ export default function PracticeScreen({ navigation, route }: Props) {
     setGameState({});
 
     Alert.alert(
-      "Game Complete!",
-      `Score: ${score}%\nCorrect: ${correctCount}/${totalQuestions}\nTime: ${timeSpent}s`,
-      [{ text: "OK" }],
+      "Practice Complete",
+      `Your Score: ${score}%\nCorrect Answers: ${correctCount}/${totalQuestions}\nTime Spent: ${timeSpent}s`,
+      [
+        { text: "Practice Again", onPress: () => startGame(currentGame) },
+        { text: "Done", style: "cancel" }
+      ],
     );
   };
 
@@ -289,272 +318,316 @@ export default function PracticeScreen({ navigation, route }: Props) {
 
     return (
       <View style={styles.gameContainer}>
-        <View style={styles.gameCard}>
-          <Text style={styles.gameProgress}>
-            {currentIndex + 1} of {words.length}
+        <View style={styles.progressIndicator}>
+          <View style={styles.progressBar}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { width: `${((currentIndex + 1) / words.length) * 100}%` }
+              ]} 
+            />
+          </View>
+          <Text style={[styles.progressText, { color: theme.colors.textSecondary }]}>
+            {currentIndex + 1} of {words.length} • {correctCount} correct
           </Text>
+        </View>
 
-          <Text style={styles.gameWordText}>{currentWord.text}</Text>
-
-          {showAnswer && (
-            <Animatable.View animation="fadeIn" style={styles.answerContainer}>
-              <Text style={styles.answerText}>
-                {currentWord.definition || currentWord.translation}
-              </Text>
-            </Animatable.View>
-          )}
+        <Animatable.View 
+          key={currentIndex}
+          animation="fadeInUp"
+          style={[styles.flashcard, { backgroundColor: theme.colors.surface }]}
+        >
+          <View style={styles.cardContent}>
+            <Text style={[styles.wordDisplay, { color: theme.colors.text }]}>
+              {currentWord.text}
+            </Text>
+            
+            <View style={styles.cardDivider} />
+            
+            {showAnswer ? (
+              <Animatable.View animation="fadeIn" style={styles.answerSection}>
+                <Text style={[styles.answerLabel, { color: theme.colors.textSecondary }]}>
+                  Definition
+                </Text>
+                <Text style={[styles.answerText, { color: theme.colors.primary }]}>
+                  {currentWord.definition || currentWord.translation}
+                </Text>
+              </Animatable.View>
+            ) : (
+              <View style={styles.hiddenAnswer}>
+                <Text style={[styles.tapHint, { color: theme.colors.textSecondary }]}>
+                  Tap to reveal definition
+                </Text>
+              </View>
+            )}
+          </View>
 
           {!showAnswer ? (
             <TouchableOpacity
               onPress={() => setGameState({ ...gameState, showAnswer: true })}
-              style={styles.showAnswerButton}
+              style={styles.revealButton}
             >
               <LinearGradient
-                colors={theme.gradients.primary}
+                colors={["#667eea", "#764ba2"]}
                 style={styles.buttonGradient}
               >
-                <Text style={styles.buttonText}>Show Answer</Text>
+                <Ionicons name="eye-outline" size={20} color="white" />
+                <Text style={styles.buttonText}>Reveal Answer</Text>
               </LinearGradient>
             </TouchableOpacity>
           ) : (
-            <View style={styles.gameActions}>
+            <View style={styles.responseButtons}>
               <TouchableOpacity
                 onPress={() => handleNext(false)}
-                style={[styles.gameActionButton, { flex: 1, marginRight: 8 }]}
+                style={[styles.responseButton, styles.incorrectButton]}
               >
                 <LinearGradient
-                  colors={[theme.colors.error, "#dc2626"]}
+                  colors={["#ef4444", "#dc2626"]}
                   style={styles.buttonGradient}
                 >
+                  <Ionicons name="close-outline" size={20} color="white" />
                   <Text style={styles.buttonText}>Incorrect</Text>
                 </LinearGradient>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleNext(true)}
-                style={[styles.gameActionButton, { flex: 1, marginLeft: 8 }]}
+                style={[styles.responseButton, styles.correctButton]}
               >
                 <LinearGradient
-                  colors={[theme.colors.success, "#059669"]}
+                  colors={["#10b981", "#059669"]}
                   style={styles.buttonGradient}
                 >
+                  <Ionicons name="checkmark-outline" size={20} color="white" />
                   <Text style={styles.buttonText}>Correct</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </Animatable.View>
       </View>
     );
   };
 
   const startHiraganaPractice = () => {
-    // Navigate directly to the Japanese screen with Hiragana tab active
-    navigation.navigate("Japanese");
   };
 
   const startNumbersPractice = () => {
-    // Navigate directly to the Numbers screen
-    navigation.navigate("Numbers");
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case "Beginner": return "#10b981";
+      case "Intermediate": return "#f59e0b";
+      case "Advanced": return "#ef4444";
+      default: return "#6b7280";
+    }
   };
 
   if (currentGame) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-        <View
-          style={[styles.headerBar, { backgroundColor: theme.colors.surface }]}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <StatusBar
+          barStyle={theme.isDark ? "light-content" : "dark-content"}
+          backgroundColor="transparent"
+          translucent
+        />
+        <View style={[styles.gameHeader, { backgroundColor: theme.colors.surface }]}>
+          <TouchableOpacity
+            onPress={() => {
+              alert({
+                title: "Exit Practice",
+                type: 'error',
+                message: "Are you sure you want to exit? Your progress will be lost.",
+                onConfirm: () => {
+                  setCurrentGame(null);
+                  setGameState({});
+                },
+              });
             }}
+            style={styles.exitButton}
           >
-            <TouchableOpacity
-              onPress={() => {
-                setCurrentGame(null);
-                setGameState({});
-              }}
-            >
-              <Ionicons name="close" size={24} color={theme.colors.text} />
-            </TouchableOpacity>
-            <Text
-              style={{
-                color: theme.colors.text,
-                fontSize: 18,
-                fontWeight: "600",
-              }}
-            >
+            <Ionicons name="close" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+          <View style={styles.gameTitle}>
+            <Text style={[styles.gameTitleText, { color: theme.colors.text }]}>
               {getGameTypes().find((g) => g.id === currentGame)?.title}
             </Text>
-            <View />
+            <Text style={[styles.gameSubtitle, { color: theme.colors.textSecondary }]}>
+              {getGameTypes().find((g) => g.id === currentGame)?.subtitle}
+            </Text>
           </View>
+          <View style={styles.headerSpacer} />
         </View>
 
         {currentGame === "flashcards" && renderFlashcardGame()}
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={theme.colors.background}
+        barStyle={theme.isDark ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent
       />
 
-      {/* Modern Header with Theme Gradient */}
-      <LinearGradient
-        colors={theme.gradients.primary}
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Animatable.View animation="fadeInDown" duration={800}>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-            🎮 Practice
-          </Text>
-          <Text
-            style={[
-              styles.headerSubtitle,
-              { color: theme.colors.textSecondary },
-            ]}
-          >
-            Choose a game mode to practice your vocabulary
-          </Text>
-        </Animatable.View>
-      </LinearGradient>
-
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Enhanced Quick Stats */}
-        <View style={styles.statsSection}>
-          <Animatable.View
-            animation="slideInLeft"
-            delay={300}
-            style={styles.statCard}
-          >
-            <LinearGradient
-              colors={theme.gradients.accent}
-              style={styles.statIconContainer}
-            >
-              <Ionicons name="flash" size={24} color="white" />
-            </LinearGradient>
-            <Text
-              style={[styles.statLabel, { color: theme.colors.textSecondary }]}
-            >
-              Ready to Practice
-            </Text>
-            <Text style={[styles.statValue, { color: theme.colors.primary }]}>
-              {practiceWords.length}
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Hero Header */}
+        <LinearGradient
+          colors={["#667eea", "#764ba2"]}
+          style={styles.heroHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Animatable.View animation="fadeInDown" duration={800}>
+            <Text style={styles.heroTitle}>Practice Hub</Text>
+            <Text style={styles.heroSubtitle}>
+              Choose your learning adventure
             </Text>
           </Animatable.View>
 
-          <Animatable.View
-            animation="slideInRight"
-            delay={400}
-            style={styles.statCard}
-          >
-            <LinearGradient
-              colors={theme.gradients.secondary}
-              style={styles.statIconContainer}
-            >
-              <Ionicons name="game-controller" size={24} color="white" />
-            </LinearGradient>
-            <Text
-              style={[styles.statLabel, { color: theme.colors.textSecondary }]}
-            >
-              Today's Games
-            </Text>
-            <Text style={[styles.statValue, { color: theme.colors.secondary }]}>
-              {state.todayStats?.gamesPlayed || 0}
-            </Text>
+          {/* Quick Stats */}
+          <Animatable.View animation="fadeInUp" duration={1000} delay={200}>
+            <View style={[styles.statsCard, { backgroundColor: theme.colors.surface }]}>
+              <View style={styles.statRow}>
+                <View style={styles.statColumn}>
+                  <Text style={[styles.statNumber, { color: theme.colors.text }]}>
+                    {practiceWords.length}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+                    Ready
+                  </Text>
+                </View>
+                
+                <View style={styles.statDivider} />
+                
+                <View style={styles.statColumn}>
+                  <Text style={[styles.statNumber, { color: theme.colors.text }]}>
+                    {state.todayStats?.gamesPlayed || 0}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+                    Today
+                  </Text>
+                </View>
+                
+                <View style={styles.statDivider} />
+                
+                <View style={styles.statColumn}>
+                  <Text style={[styles.statNumber, { color: theme.colors.text }]}>
+                    {state.todayStats?.timeSpent || 0}m
+                  </Text>
+                  <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+                    Studied
+                  </Text>
+                </View>
+              </View>
+            </View>
           </Animatable.View>
-        </View>
+        </LinearGradient>
 
-        {/* Enhanced Game Types */}
-        <View style={styles.gamesSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            🎯 Game Modes
+        {/* Practice Modes */}
+        <View style={styles.practiceSection}>
+          <Text style={[styles.sectionHeader, { color: theme.colors.text }]}>
+            Practice Modes
           </Text>
-
+          
           {getGameTypes().map((game, index) => (
             <Animatable.View
               key={game.id}
               animation="fadeInUp"
-              delay={500 + index * 100}
+              delay={300 + index * 100}
             >
               <TouchableOpacity
                 onPress={() => startGame(game.id)}
-                style={styles.gameCard}
+                style={[styles.gameCard, { backgroundColor: theme.colors.surface }]}
               >
-                <LinearGradient
-                  colors={game.gradient as [string, string]}
-                  style={styles.gameGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View style={styles.gameContent}>
-                    <View style={styles.gameInfo}>
-                      <View style={styles.gameHeader}>
-                        <Ionicons
-                          name={game.icon as any}
-                          size={28}
-                          color="white"
-                        />
-                        <Text style={styles.gameTitle}>{game.title}</Text>
-                      </View>
-                      <Text style={styles.gameSubtitle}>{game.subtitle}</Text>
-                      <Text style={styles.gameDescription}>
-                        {game.description}
+                <View style={styles.gameCardHeader}>
+                  <LinearGradient
+                    colors={game.gradient as [string, string]}
+                    style={styles.gameIcon}
+                  >
+                    <Ionicons name={game.icon as any} size={24} color="white" />
+                  </LinearGradient>
+                  
+                  <View style={styles.gameInfo}>
+                    <View style={styles.gameTitleRow}>
+                      <Text style={[styles.gameCardTitle, { color: theme.colors.text }]}>
+                        {game.title}
                       </Text>
+                      <View style={[
+                        styles.difficultyBadge, 
+                        { backgroundColor: `${getDifficultyColor(game.difficulty)}20` }
+                      ]}>
+                        <Text style={[
+                          styles.difficultyText, 
+                          { color: getDifficultyColor(game.difficulty) }
+                        ]}>
+                          {game.difficulty}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.gameArrow}>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={24}
-                        color="white"
-                      />
+                    
+                    <Text style={[styles.gameCardSubtitle, { color: theme.colors.textSecondary }]}>
+                      {game.subtitle}
+                    </Text>
+                    
+                    <Text style={[styles.gameDescription, { color: theme.colors.textSecondary }]}>
+                      {game.description}
+                    </Text>
+                    
+                    <View style={styles.gameMetadata}>
+                      <View style={styles.metadataItem}>
+                        <Ionicons name="folder-outline" size={12} color={theme.colors.textSecondary} />
+                        <Text style={[styles.metadataText, { color: theme.colors.textSecondary }]}>
+                          {game.category}
+                        </Text>
+                      </View>
+                      <View style={styles.metadataItem}>
+                        <Ionicons name="time-outline" size={12} color={theme.colors.textSecondary} />
+                        <Text style={[styles.metadataText, { color: theme.colors.textSecondary }]}>
+                          {game.estimatedTime}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </LinearGradient>
+                  
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={theme.colors.textSecondary}
+                  />
+                </View>
               </TouchableOpacity>
             </Animatable.View>
           ))}
         </View>
 
-        {/* Enhanced Empty State */}
+        {/* Empty State */}
         {words.length === 0 && (
-          <Animatable.View
-            animation="fadeIn"
-            delay={800}
-            style={styles.emptyState}
-          >
-            <Text style={styles.emptyEmoji}>🎮</Text>
-            <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-              No words to practice
-            </Text>
-            <Text
-              style={[
-                styles.emptyDescription,
-                { color: theme.colors.textSecondary },
-              ]}
+          <Animatable.View animation="fadeIn" delay={800} style={styles.emptyState}>
+            <LinearGradient
+              colors={["#667eea", "#764ba2"]}
+              style={styles.emptyIconContainer}
             >
-              Add some words to your vocabulary first to start practicing
+              <Ionicons name="library-outline" size={32} color="white" />
+            </LinearGradient>
+            <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
+              Build Your Vocabulary First
+            </Text>
+            <Text style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}>
+              Add words to your library to unlock practice modes and start your learning journey
             </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate("Library")}
-              style={styles.emptyButton}
+              style={styles.ctaButton}
             >
               <LinearGradient
-                colors={theme.gradients.primary}
+                colors={["#667eea", "#764ba2"]}
                 style={styles.buttonGradient}
               >
-                <Text style={styles.emptyButtonText}>Add Words</Text>
+                <Ionicons name="add-outline" size={20} color="white" />
+                <Text style={styles.buttonText}>Add Your First Words</Text>
               </LinearGradient>
             </TouchableOpacity>
           </Animatable.View>
@@ -564,163 +637,189 @@ export default function PracticeScreen({ navigation, route }: Props) {
   );
 }
 
-const { width } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-  },
-  headerBar: {
-    paddingHorizontal: 24,
-    paddingTop: 48,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: "rgba(255, 255, 255, 0.9)",
-    textAlign: "center",
-    lineHeight: 22,
-  },
   scrollView: {
     flex: 1,
   },
-  statsSection: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    gap: 15,
+  
+  // Hero Header Styles
+  heroHeader: {
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 16,
+  heroTitle: {
+    fontSize: 32,
+    color: "white",
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginBottom: 24,
+  },
+  
+  // Stats Card
+  statsCard: {
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  statRow: {
+    flexDirection: "row",
     alignItems: "center",
+  },
+  statColumn: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#f8fafc",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#e5e7eb",
+    marginHorizontal: 16,
+  },
+  
+  // Practice Section
+  practiceSection: {
+    padding: 24,
+  },
+  sectionHeader: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  
+  // Game Cards
+  gameCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 6,
   },
-  statIconContainer: {
+  gameCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  gameIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    marginBottom: 4,
-    fontWeight: "500",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  gamesSection: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  gameCard: {
-    marginBottom: 16,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  gameGradient: {
-    padding: 20,
-    borderRadius: 16,
-  },
-  gameContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    marginRight: 16,
   },
   gameInfo: {
     flex: 1,
   },
-  gameHeader: {
+  gameTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
-  },
-  gameTitle: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 12,
-  },
-  gameSubtitle: {
-    color: "rgba(255, 255, 255, 0.9)",
-    fontSize: 16,
+    justifyContent: "space-between",
     marginBottom: 4,
   },
-  gameDescription: {
-    color: "rgba(255, 255, 255, 0.8)",
+  gameCardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    flex: 1,
+  },
+  gameCardSubtitle: {
     fontSize: 14,
+    marginBottom: 8,
+    fontWeight: "500",
   },
-  gameArrow: {
-    marginLeft: 16,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  gameDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 12,
   },
+  difficultyBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  difficultyText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  gameMetadata: {
+    flexDirection: "row",
+    gap: 16,
+  },
+  metadataItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  metadataText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  
+  // Empty State
   emptyState: {
     alignItems: "center",
     paddingVertical: 60,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
-  emptyEmoji: {
-    fontSize: 80,
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#1e293b",
-    marginBottom: 12,
     textAlign: "center",
+    marginBottom: 12,
   },
   emptyDescription: {
     fontSize: 16,
-    color: "#64748b",
     textAlign: "center",
     lineHeight: 24,
-    marginBottom: 30,
+    marginBottom: 32,
     maxWidth: 280,
   },
-  emptyButton: {
+  ctaButton: {
     borderRadius: 25,
     shadowColor: "#667eea",
     shadowOffset: { width: 0, height: 8 },
@@ -728,72 +827,156 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  buttonGradient: {
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 25,
+  
+  // Game Screen Styles
+  gameHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  exitButton: {
+    padding: 8,
+  },
+  gameTitle: {
+    flex: 1,
     alignItems: "center",
   },
-  emptyButtonText: {
-    color: "white",
-    fontSize: 16,
+  gameTitleText: {
+    fontSize: 18,
     fontWeight: "bold",
   },
-  // Game-specific styles
+  gameSubtitle: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  
+  // Flashcard Game
   gameContainer: {
     flex: 1,
-    padding: 20,
+    padding: 24,
   },
-  gameProgress: {
-    textAlign: "center",
+  progressIndicator: {
+    marginBottom: 24,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: "#e5e7eb",
+    borderRadius: 3,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#667eea",
+  },
+  progressText: {
     fontSize: 14,
-    color: "#64748b",
-    marginBottom: 20,
-    fontWeight: "600",
-  },
-  gameWordText: {
+    fontWeight: "500",
     textAlign: "center",
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#1e293b",
-    marginBottom: 30,
   },
-  answerContainer: {
-    marginBottom: 30,
-    padding: 20,
-    backgroundColor: "rgba(102, 126, 234, 0.1)",
-    borderRadius: 16,
+  flashcard: {
+    borderRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+    minHeight: 400,
+  },
+  cardContent: {
+    padding: 32,
+    flex: 1,
+  },
+  wordDisplay: {
+    fontSize: 36,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: "#e5e7eb",
+    marginBottom: 24,
+  },
+  answerSection: {
+    flex: 1,
+    justifyContent: "center",
+  },
+answerLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   answerText: {
+    fontSize: 24,
+    fontWeight: "600",
     textAlign: "center",
-    fontSize: 18,
-    color: "#667eea",
-    lineHeight: 26,
+    lineHeight: 32,
   },
-  showAnswerButton: {
-    borderRadius: 16,
+  hiddenAnswer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tapHint: {
+    fontSize: 16,
+    fontStyle: "italic",
+  },
+  revealButton: {
+    borderRadius: 20,
+    marginHorizontal: 32,
+    marginBottom: 24,
     shadowColor: "#667eea",
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 8,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  gameActions: {
+  responseButtons: {
     flexDirection: "row",
-    gap: 16,
+    marginHorizontal: 32,
+    marginBottom: 24,
+    gap: 12,
   },
-  gameActionButton: {
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 8,
+  responseButton: {
+    flex: 1,
+    borderRadius: 20,
+  },
+  correctButton: {
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  incorrectButton: {
+    shadowColor: "#ef4444",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  buttonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    gap: 8,
   },
   buttonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontWeight: "600",
   },
 });

@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext";
 import { RootStackParamList, TabParamList } from "../types";
 
-// Import screens (we'll create these next)
+// Import screens
 import OnboardingScreen from "../screens/OnboardingScreen";
 import HomeScreen from "../screens/HomeScreen";
 import LibraryScreen from "../screens/LibraryScreen";
@@ -20,12 +20,11 @@ import SettingsScreen from "../screens/SettingsScreen";
 import AchievementsScreen from "../screens/AchievementsScreen";
 import StatisticsScreen from "../screens/StatisticsScreen";
 import AboutApp from "../screens/AboutApp";
-
-
-import { useApp } from "../contexts/AppContext";
 import LibraryFiltersScreen from "../screens/LibraryFilterSceen";
 import ErrorSceen from "../screens/ErrorSceen";
 import LoadingScreen from "../screens/LoadingScreen";
+
+import { useApp } from "../contexts/AppContext";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -112,14 +111,13 @@ export default function AppNavigator() {
   const { theme } = useTheme();
   const { state } = useApp();
 
-
-  if(state.isLoading) {
-    return (
-      <LoadingScreen/>
-    );
+  // Show loading screen while app is initializing
+  if (state.isLoading) {
+    return <LoadingScreen />;
   }
 
-  if(!state.user) {
+  // Check if there's an explicit error state
+  if (state.error) {
     return (
       <NavigationContainer>
         <Stack.Navigator>
@@ -133,8 +131,25 @@ export default function AppNavigator() {
     );
   }
 
-  const initialRoute = state.user.preferences.firstTimeUser ? "Onboarding" : "Main";
+  // Handle case where user data is not available (but not an error)
+  // This could be a first-time user or authentication issue
+  if (!state.user) {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen
+            name="Onboarding"
+            component={OnboardingScreen}
+            options={{ headerShown: false }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
 
+  // Safely determine initial route with fallback
+  const isFirstTimeUser = state.user?.preferences?.firstTimeUser ?? true;
+  const initialRoute = isFirstTimeUser ? "Onboarding" : "Main";
 
   return (
     <NavigationContainer>
@@ -167,7 +182,6 @@ export default function AppNavigator() {
           component={TabNavigator}
           options={{ headerShown: false }}
         />
-
         <Stack.Screen
           name="WordDetails"
           component={WordDetailsScreen}
