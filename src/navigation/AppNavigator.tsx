@@ -14,6 +14,7 @@ import LibraryScreen from "../screens/LibraryScreen";
 import PracticeScreen from "../screens/PracticeScreen";
 import AlphabetScreen from "../screens/AlphabetScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+import GrammarScreen from "../screens/GrammarScreen";
 import WordDetailsScreen from "../screens/WordDetailsScreen";
 import AddWordScreen from "../screens/AddWordScreen";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -198,14 +199,24 @@ export default function AppNavigator() {
             headerShown: false,
           }}
         />
-        <Stack.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{
-            title: "Settings",
-            headerShown: false,
-          }}
-        />
+
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          title: "Settings",
+          headerShown: false,
+        }}
+      />
+
+      <Stack.Screen
+        name="Grammar"
+        component={GrammarScreen}
+        options={{
+          title: "Grammar Lessons",
+          headerShown: false,
+        }}
+      />
         <Stack.Screen
           name="Achievements"
           component={AchievementsScreen}

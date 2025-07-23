@@ -138,6 +138,7 @@ export type RootStackParamList = {
   Statistics: undefined;
   AboutApp: undefined;
   LibraryFilters: undefined;
+  Grammar: undefined;
   Error:undefined;
   Loading: undefined;
 };
