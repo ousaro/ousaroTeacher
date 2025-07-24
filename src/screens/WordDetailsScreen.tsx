@@ -143,10 +143,10 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
           style={[styles.headerTitle, { color: theme.colors.text, textAlign: 'center' }]}
         >
           <Text style={{ fontWeight: 'bold', fontSize: 18 }}>
-            {word.translation}
+            {word.text}
           </Text>
           <Text style={{ fontWeight: 'normal', fontSize: 16, color: theme.colors.primary }}>
-            {' - '}{word.text}
+            {' - '}{word.translation}
           </Text>
         </Text>
       </View>
@@ -177,11 +177,11 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         {/* Word Card */}
-        <ThemedCard title={word.translation} variant="elevated" style={[styles.card]}>
+        <ThemedCard title={word.text} variant="elevated" style={[styles.card]}>
           <View style={styles.wordHeader}>
             <View style={styles.wordInfo}>
               <Text style={[{ color: theme.colors.primary, marginBottom: 8 }]}>
-                {word.text}
+                {word.translation}
               </Text>
               {word.pronunciation && (
                 <Text

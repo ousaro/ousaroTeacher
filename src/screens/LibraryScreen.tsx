@@ -238,10 +238,10 @@ export default function LibraryScreen({ navigation }: Props) {
           <View style={styles.wordMain}>
             <View style={styles.wordInfo}>
               <Text style={[styles.wordText, { color: theme.colors.text }]}>
-                {word.translation}
+                {word.text}
               </Text>
                <Text style={[styles.wordTranslation, { color: theme.colors.primary }]}>
-                  {word.text}
+                  {word.translation}
               </Text>
               {word.definition && (
                 <Text 
@@ -307,13 +307,13 @@ export default function LibraryScreen({ navigation }: Props) {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.headerTop}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-          </TouchableOpacity>
+
+          <Ionicons
+            name="library"
+            size={24}
+            color={theme.colors.text}
+            style={{}}
+          />
           
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
             My Library

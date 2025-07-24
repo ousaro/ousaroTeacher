@@ -138,8 +138,9 @@ export type RootStackParamList = {
   Statistics: undefined;
   AboutApp: undefined;
   LibraryFilters: undefined;
-  Grammar: undefined;
-  Error:undefined;
+  LessonDetails: { lessonId: string };
+  LessonPlayer: { lessonId: string; lessonTitle: string };
+  Error: undefined;
   Loading: undefined;
 };
 
@@ -147,6 +148,7 @@ export type RootStackParamList = {
 export type TabParamList = {
   Home: undefined;
   Library: undefined;
+  Grammar: undefined;
   Practice: undefined;
   Japanese: undefined;
   Profile: undefined;

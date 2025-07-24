@@ -465,7 +465,7 @@ export default function HomeScreen({ navigation }: Props) {
                     <Text
                       style={[styles.actionText, { color: theme.colors.text }]}
                     >
-                      {word.translation}
+                      {word.text}
                     </Text>
                    
                     <Text
@@ -475,7 +475,7 @@ export default function HomeScreen({ navigation }: Props) {
                         ]}
                         numberOfLines={1}
                       >
-                        {word.text}
+                        {word.translation}
                       </Text>
                      {word.definition && (
                       <Text

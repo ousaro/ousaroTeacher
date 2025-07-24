@@ -26,6 +26,7 @@ import ErrorSceen from "../screens/ErrorSceen";
 import LoadingScreen from "../screens/LoadingScreen";
 
 import { useApp } from "../contexts/AppContext";
+import LessonDetailsScreen from "../screens/LessonDetailsScree";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -44,6 +45,8 @@ function TabNavigator() {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "Library") {
             iconName = focused ? "library" : "library-outline";
+          } else if (route.name === "Grammar") {
+            iconName = focused ? "book" : "book-outline";
           } else if (route.name === "Practice") {
             iconName = focused ? "game-controller" : "game-controller-outline";
           } else if (route.name === "Japanese") {
@@ -88,6 +91,11 @@ function TabNavigator() {
         name="Library"
         component={LibraryScreen}
         options={{ title: "Library" }}
+      />
+      <Tab.Screen
+        name="Grammar"
+        component={GrammarScreen}
+        options={{ title: "Grammar" }}
       />
       <Tab.Screen
         name="Practice"
@@ -208,15 +216,6 @@ export default function AppNavigator() {
           headerShown: false,
         }}
       />
-
-      <Stack.Screen
-        name="Grammar"
-        component={GrammarScreen}
-        options={{
-          title: "Grammar Lessons",
-          headerShown: false,
-        }}
-      />
         <Stack.Screen
           name="Achievements"
           component={AchievementsScreen}
@@ -246,6 +245,24 @@ export default function AppNavigator() {
           component={LibraryFiltersScreen}
           options={{
             title: "Library Filters",
+            headerShown: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="LessonDetails"
+          component={LessonDetailsScreen}
+          options={{
+            title: "Lesson Details",
+            headerShown: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="LessonPlayer"
+          component={LessonDetailsScreen}
+          options={{
+            title: "Lesson Player",
             headerShown: false,
           }}
         />
