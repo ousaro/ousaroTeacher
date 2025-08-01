@@ -36,8 +36,6 @@ export default function LibraryScreen({ navigation }: Props) {
   const [filters, setFilters] = useState<FilterState>({
     category: "all",
     sortBy: "newest",
-    difficultyRange: [1, 5],
-    progressRange: [0, 100],
     dateRange: "all",
     onlyFavorites: false,
     direction: 'asc'
@@ -47,8 +45,6 @@ export default function LibraryScreen({ navigation }: Props) {
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (filters.category !== "all") count++;
-    if (filters.difficultyRange[0] !== 1 || filters.difficultyRange[1] !== 5) count++;
-    if (filters.progressRange[0] !== 0 || filters.progressRange[1] !== 100) count++;
     if (filters.dateRange !== "all") count++;
     if (filters.onlyFavorites) count++;
     return count;
@@ -65,8 +61,6 @@ export default function LibraryScreen({ navigation }: Props) {
     setFilters({
       category: "all",
       sortBy: "newest",
-      difficultyRange: [1, 5],
-      progressRange: [0, 100],
       dateRange: "all",
       onlyFavorites: false,
       direction: 'asc'
@@ -90,29 +84,15 @@ export default function LibraryScreen({ navigation }: Props) {
     // Category filter
     switch (filters.category) {
       case "learning":
-        filtered = filtered.filter((word) => word.progress > 0 && word.progress < 80);
+        filtered = filtered.filter((word) => 0 > 0 && 0 < 80);
         break;
       case "mastered":
-        filtered = filtered.filter((word) => word.progress >= 80);
+        filtered = filtered.filter((word) => 0 >= 80);
         break;
       case "new":
-        filtered = filtered.filter((word) => word.progress === 0);
+        filtered = filtered.filter((word) => 0 === 0);
         break;
     }
-
-    // Difficulty range filter
-    filtered = filtered.filter(
-      (word) => 
-        word.difficulty >= filters.difficultyRange[0] && 
-        word.difficulty <= filters.difficultyRange[1]
-    );
-
-    // Progress range filter
-    filtered = filtered.filter(
-      (word) => 
-        word.progress >= filters.progressRange[0] && 
-        word.progress <= filters.progressRange[1]
-    );
 
     // Date range filter
     if (filters.dateRange !== "all") {
@@ -150,15 +130,6 @@ export default function LibraryScreen({ navigation }: Props) {
     switch (filters.sortBy) {
       case "alphabetical":
         filtered.sort((a, b) => a.text.localeCompare(b.text) * sortDirection);
-        break;
-      case "difficulty":
-        filtered.sort((a, b) => (b.difficulty - a.difficulty) * sortDirection);
-        break;
-      case "progress":
-        filtered.sort((a, b) => (a.progress - b.progress) * sortDirection);
-        break;
-      case "mastered":
-        filtered.sort((a, b) => (b.progress - a.progress) * sortDirection);
         break;
       case "newest":
       default:
@@ -204,18 +175,22 @@ export default function LibraryScreen({ navigation }: Props) {
     return "#6b7280"; // Gray - not started
   };
 
-  const getDifficultyColor = (difficulty: number) => {
-    const colors = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#dc2626"];
-    return colors[difficulty - 1] || "#6b7280";
-  };
-
   const getSortDisplayText = () => {
     const sortOptions = {
       newest: "Recently Added",
-      alphabetical: "Alphabetical",
-      difficulty: "Difficulty",
+      alphabetical: "Alphabetical", 
       progress: "Progress",
       mastered: "Mastered First",
+    };
+    return sortOptions[filters.sortBy];
+  };
+
+  const getSortDisplayTextJp = () => {
+    const sortOptions = {
+      newest: "新しく追加",
+      alphabetical: "アルファベット順", 
+      progress: "進捗",
+      mastered: "習得済み優先",
     };
     return sortOptions[filters.sortBy];
   };
@@ -269,20 +244,6 @@ export default function LibraryScreen({ navigation }: Props) {
           </View>
 
           <View style={styles.wordBottom}>
-            <View style={styles.progressSection}>
-              <View style={[styles.progressDot, { backgroundColor: getProgressColor(word.progress) }]} />
-              <Text style={[styles.progressLabel, { color: theme.colors.textSecondary }]}>
-                {word.progress >= 80 ? 'Mastered' : word.progress > 0 ? `${word.progress}%` : 'New'}
-              </Text>
-            </View>
-
-            <View style={styles.difficultySection}>
-              <View style={[styles.difficultyDot, { backgroundColor: getDifficultyColor(word.difficulty) }]} />
-              <Text style={[styles.difficultyLabel, { color: theme.colors.textSecondary }]}>
-                Level {word.difficulty}
-              </Text>
-            </View>
-
             <TouchableOpacity
               onPress={() => handleDeleteWord(word)}
               style={styles.moreButton}
@@ -315,9 +276,14 @@ export default function LibraryScreen({ navigation }: Props) {
             style={{}}
           />
           
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-            My Library
-          </Text>
+          <View style={styles.headerTextContainer}>
+            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+              My Library
+            </Text>
+            <Text style={[styles.jpHeaderTitle, { color: theme.colors.textSecondary }]}>
+              マイライブラリ
+            </Text>
+          </View>
           
           <TouchableOpacity
             onPress={() => navigation.navigate("AddWord")}
@@ -333,7 +299,7 @@ export default function LibraryScreen({ navigation }: Props) {
           <Ionicons name="search" size={20} color={theme.colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: theme.colors.text }]}
-            placeholder="Search words..."
+            placeholder="Search words... / 単語を検索..."
             placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -363,14 +329,22 @@ export default function LibraryScreen({ navigation }: Props) {
               <Text style={[styles.clearFiltersText, { color: theme.colors.primary }]}>
                 Clear all
               </Text>
+              <Text style={[styles.jpClearFiltersText, { color: theme.colors.primary }]}>
+                すべてクリア
+              </Text>
             </TouchableOpacity>
           )}
         </View>
         
         <View style={styles.controlsRight}>
-          <Text style={[styles.sortText, { color: theme.colors.textSecondary }]}>
-            {getSortDisplayText()}
-          </Text>
+          <View style={styles.sortTextContainer}>
+            <Text style={[styles.sortText, { color: theme.colors.textSecondary }]}>
+              {getSortDisplayText()}
+            </Text>
+            <Text style={[styles.jpSortText, { color: theme.colors.textSecondary }]}>
+              {getSortDisplayTextJp()}
+            </Text>
+          </View>
 
           {/* Filter Button */}
           <TouchableOpacity
@@ -458,10 +432,18 @@ export default function LibraryScreen({ navigation }: Props) {
           <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
             {searchQuery || activeFiltersCount > 0 ? "No words found" : "No words yet"}
           </Text>
+          <Text style={[styles.jpEmptyTitle, { color: theme.colors.textSecondary }]}>
+            {searchQuery || activeFiltersCount > 0 ? "単語が見つかりません" : "まだ単語がありません"}
+          </Text>
           <Text style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}>
             {searchQuery || activeFiltersCount > 0
               ? "Try adjusting your search or filters"
               : "Add your first word to get started"}
+          </Text>
+          <Text style={[styles.jpEmptyDescription, { color: theme.colors.textSecondary }]}>
+            {searchQuery || activeFiltersCount > 0
+              ? "検索条件やフィルタを調整してください"
+              : "最初の単語を追加して始めましょう"}
           </Text>
           {(searchQuery || activeFiltersCount > 0) ? (
             <ThemedButton
@@ -536,6 +518,17 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
+    lineHeight: 24,
+  },
+  headerTextContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  jpHeaderTitle: {
+    fontSize: 14,
+    marginTop: 2,
+    letterSpacing: 1,
   },
   addButton: {
     width: 40,
@@ -587,9 +580,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  jpClearFiltersText: {
+    fontSize: 10,
+    color: '#888',
+    marginTop: 1,
+    fontWeight: "500",
+  },
   sortText: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  sortTextContainer: {
+    alignItems: "flex-end",
+  },
+  jpSortText: {
+    fontSize: 10,
+    color: '#888',
+    marginTop: 1,
+    fontWeight: "400",
   },
   filterButton: {
     flexDirection: "row",
@@ -689,7 +697,7 @@ const styles = StyleSheet.create({
   wordBottom: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
   },
   progressSection: {
     flexDirection: "row",
@@ -705,19 +713,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
-  difficultySection: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  progressTextContainer: {
+    flex: 1,
   },
-  difficultyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  difficultyLabel: {
-    fontSize: 12,
-    fontWeight: "500",
+  jpProgressLabel: {
+    fontSize: 10,
+    color: '#888',
+    marginTop: 1,
   },
   moreButton: {
     width: 24,
@@ -747,5 +749,18 @@ const styles = StyleSheet.create({
   },
   emptyButton: {
     paddingHorizontal: 24,
+  },
+  jpEmptyTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  jpEmptyDescription: {
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
+    marginBottom: 24,
   },
 });

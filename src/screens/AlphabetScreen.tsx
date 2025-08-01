@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Modal,
   Animated,
   Dimensions,
+  FlatList,
+  InteractionManager,
 } from "react-native";
 import { PanGestureHandler,State  } from 'react-native-gesture-handler';
 import { Ionicons } from "@expo/vector-icons";
@@ -18,8 +20,16 @@ import * as Animatable from "react-native-animatable";
 import { useTheme } from "../contexts/ThemeContext";
 import { useApp } from "../contexts/AppContext";
 import { AlphabetLetter, NumberItem, CharacterGroup } from "../types";
+import CharacterItem from "../components/CharacterItem";
+import dataOptimizer from "../utils/dataOptimization";
+import { hiraganaGroups, katakanaGroups, japaneseNumbers } from "../data/alphabetData";
 
 const { width, height } = Dimensions.get("window");
+
+// Constants for layout calculations
+const HORIZONTAL_PADDING = 20;
+const COLUMN_GAP = 8;
+const NUM_COLUMNS = 5;
 
 interface Props {
   navigation: any;
@@ -31,6 +41,7 @@ export default function AlphabetScreen({ navigation }: Props) {
   const [selectedItem, setSelectedItem] = useState<AlphabetLetter | NumberItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"hiragana" | "katakana" | "numbers">("hiragana");
+  const [isReady, setIsReady] = useState(false);
   
   // Enhanced modal animations
   const modalTranslateY = useRef(new Animated.Value(height)).current;
@@ -42,105 +53,121 @@ export default function AlphabetScreen({ navigation }: Props) {
   const gestureState = useRef(new Animated.Value(0)).current;
 
   // Calculate exact dimensions for 5 columns
-  const HORIZONTAL_PADDING = 20;
-  const COLUMN_GAP = 8;
-  const NUM_COLUMNS = 5;
   const CONTAINER_WIDTH = width - (HORIZONTAL_PADDING * 2);
   const TOTAL_GAP_WIDTH = COLUMN_GAP * (NUM_COLUMNS - 1);
   const ITEM_WIDTH = (CONTAINER_WIDTH - TOTAL_GAP_WIDTH) / NUM_COLUMNS;
 
+  // Defer heavy rendering until after navigation animation
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+    });
+    return () => task.cancel();
+  }, []);
+
   // Get numbers data with error handling
-  const getNumbersData = (): NumberItem[] => {
+  const getNumbersData = useCallback((): NumberItem[] => {
     try {
-      return actions.getNumbersByLanguage("japanese") || [];
+      return japaneseNumbers || [];
     } catch (error) {
       console.error("Error getting numbers data:", error);
       return [];
     }
-  };
+  }, []);
 
-  // Memoized current data with better error handling
+  // Memoized and optimized current data with caching
   const currentData = useMemo(() => {
+    if (!isReady) return [];
+    
     try {
       if (activeTab === "numbers") {
-        return getNumbersData();
+        return dataOptimizer.optimizeForMobile(getNumbersData());
       }
 
-      const alphabetGroups = actions.getAlphabetGroupsByLanguage?.(activeTab) || [];
+      const alphabetGroups = activeTab === "hiragana" ? hiraganaGroups : katakanaGroups;
       return alphabetGroups;
     } catch (error) {
       console.error("Error getting current data:", error);
       return [];
     }
-  }, [activeTab, state?.isLoading, state]);
+  }, [activeTab, isReady, getNumbersData]);
 
-  // Enhanced modal open animation
-  const openModal = () => {
+  // Flatten character data for FlatList optimization with caching
+  const flattenedData = useMemo(() => {
+    const cacheKey = `flattened-${activeTab}`;
+    
+    if (activeTab === "numbers") {
+      return dataOptimizer.optimizeForMobile(currentData as NumberItem[]);
+    }
+    
+    const groups = currentData as CharacterGroup[];
+    const flattened = dataOptimizer.flattenCharacterGroups(groups);
+    return dataOptimizer.optimizeForMobile(flattened);
+  }, [currentData, activeTab]);
+
+  // Enhanced modal open animation with reduced complexity
+  const openModal = useCallback(() => {
     setModalVisible(true);
     
     // Reset values
-    modalTranslateY.setValue(height);
+    modalTranslateY.setValue(height * 0.5); // Start closer for faster animation
     modalOpacity.setValue(0);
     backdropOpacity.setValue(0);
-    modalScale.setValue(0.9);
+    modalScale.setValue(0.95); // Less dramatic scaling
     
-    // Staggered animations for smooth entrance
+    // Simplified animations for better performance
     Animated.parallel([
       Animated.timing(backdropOpacity, {
         toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.spring(modalTranslateY, {
-        toValue: 0,
-        tension: 100,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-      Animated.timing(modalOpacity, {
-        toValue: 1,
-        duration: 300,
-        delay: 100,
-        useNativeDriver: true,
-      }),
-      Animated.spring(modalScale, {
-        toValue: 1,
-        tension: 120,
-        friction: 8,
-        delay: 150,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  // Enhanced modal close animation
-  const closeModal = () => {
-    Animated.parallel([
-      Animated.timing(backdropOpacity, {
-        toValue: 0,
-        duration: 200,
+        duration: 200, // Reduced duration
         useNativeDriver: true,
       }),
       Animated.timing(modalTranslateY, {
-        toValue: height,
-        duration: 250,
+        toValue: 0,
+        duration: 250, // Reduced duration
         useNativeDriver: true,
       }),
       Animated.timing(modalOpacity, {
-        toValue: 0,
+        toValue: 1,
         duration: 200,
         useNativeDriver: true,
       }),
       Animated.timing(modalScale, {
-        toValue: 0.9,
+        toValue: 1,
         duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [modalTranslateY, modalOpacity, backdropOpacity, modalScale]);
+
+  // Enhanced modal close animation with reduced complexity
+  const closeModal = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 150, // Faster close
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalTranslateY, {
+        toValue: height * 0.5,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalOpacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalScale, {
+        toValue: 0.95,
+        duration: 150,
         useNativeDriver: true,
       }),
     ]).start(() => {
       setModalVisible(false);
-      setTimeout(() => setSelectedItem(null), 100);
+      setSelectedItem(null);
     });
-  };
+  }, [modalTranslateY, modalOpacity, backdropOpacity, modalScale]);
 
   // Handle swipe to dismiss
   const onGestureEvent = Animated.event(
@@ -183,7 +210,7 @@ export default function AlphabetScreen({ navigation }: Props) {
   };
 
   
-  const handlePractice = () => {
+  const handlePractice = useCallback(() => {
     try {
       navigation.navigate("Practice", {
         practiceType: activeTab,
@@ -191,218 +218,47 @@ export default function AlphabetScreen({ navigation }: Props) {
     } catch (error) {
       console.error("Error navigating to practice:", error);
     }
-  };
+  }, [navigation, activeTab]);
 
-  const handleItemPress = (item: AlphabetLetter | NumberItem) => {
+  const handleItemPress = useCallback((item: AlphabetLetter | NumberItem) => {
     if (item.id.includes("undefined")) return;
     setSelectedItem(item);
     openModal();
-  };
+  }, [openModal]);
 
   // Type guards with better error handling
-  const isAlphabetLetter = (item: AlphabetLetter | NumberItem | null): item is AlphabetLetter => {
+  const isAlphabetLetter = useCallback((item: AlphabetLetter | NumberItem | null): item is AlphabetLetter => {
     return item !== null && 'character' in item;
-  };
+  }, []);
 
-  const isNumberItem = (item: AlphabetLetter | NumberItem | null): item is NumberItem => {
+  const isNumberItem = useCallback((item: AlphabetLetter | NumberItem | null): item is NumberItem => {
     return item !== null && 'number' in item;
-  };
+  }, []);
 
-  // Render individual character card with fixed width and enhanced animations
-  const renderCharacterCard = (item: AlphabetLetter | NumberItem, index: number) => {
+  // Optimized render function for FlatList using memo component
+  const renderCharacterItem = useCallback(({ item, index }: { item: AlphabetLetter | NumberItem; index: number }) => {
     if (!item) return null;
 
     return (
-      <Animatable.View
-        key={item.id}
-        animation="fadeInUp"
-        delay={index * 30}
-        style={[styles.letterContainer, { width: ITEM_WIDTH }]}
-      >
-        <TouchableOpacity
-          onPress={() => handleItemPress(item)}
-          style={[
-            styles.letterCard,
-            { backgroundColor: theme?.colors?.surface || '#fff' },
-          ]}
-          activeOpacity={0.85}
-          // Add haptic feedback on press
-          onPressIn={() => {
-            // You can add haptic feedback here if available
-            // Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          }}
-        >
-          {/* Progress indicator */}
-          {(item.progress || 0) > 0 && (
-            <View style={styles.progressContainer}>
-              <Animated.View
-                style={[
-                  styles.progressBar,
-                  { width: `${item.progress || 0}%` },
-                ]}
-              />
-            </View>
-          )}
-
-          {isAlphabetLetter(item) ? (
-            <>
-              <Text
-                style={[styles.letterText, { color: theme?.colors?.text || '#000' }]}
-              >
-                {item.character}
-              </Text>
-              <Text
-                style={[
-                  styles.letterName,
-                  { color: theme?.colors?.textSecondary || '#666' },
-                ]}
-              >
-                {item.name}
-              </Text>
-            </>
-          ) : isNumberItem(item) ? (
-            <>
-              <Text
-                style={[styles.kanjiText, { color: theme?.colors?.text || '#000' }]}
-              >
-                {item.text}
-              </Text>
-              <Text
-                style={[
-                  styles.numberText,
-                  { color: theme?.colors?.textSecondary || '#666' },
-                ]}
-              >
-                {item.number}
-              </Text>
-              <Text
-                style={[
-                  styles.pronunciationText,
-                  { color: theme?.colors?.textSecondary || '#666' },
-                ]}
-              >
-                {item.pronunciation}
-              </Text>
-            </>
-          ) : null}
-        </TouchableOpacity>
-      </Animatable.View>
+      <CharacterItem
+        item={item}
+        index={index}
+        itemWidth={ITEM_WIDTH}
+        onPress={handleItemPress}
+        shouldAnimate={index < 0} // Only animate first 20 items
+      />
     );
-  };
+  }, [ITEM_WIDTH, handleItemPress]);
 
-  // Render character groups with exact 5 columns
-  const renderCharacterGroups = () => {
-    if (activeTab === "numbers" || !Array.isArray(currentData)) {
-      return null;
-    }
+  // Optimized getItemLayout for FlatList performance
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: ITEM_WIDTH + 8, // item width + margin
+    offset: (ITEM_WIDTH + 8) * Math.floor(index / NUM_COLUMNS),
+    index,
+  }), [ITEM_WIDTH, NUM_COLUMNS]);
 
-    const groups = currentData as CharacterGroup[];
-    
-    if (!groups || groups.length === 0) {
-      return (
-        <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: theme?.colors?.textSecondary || '#666' }]}>
-            No data available
-          </Text>
-        </View>
-      );
-    }
-
-    return groups.map((group, groupIndex) => {
-      if (!group || !group.characters) return null;
-      
-      return (
-        <View key={`${activeTab}-${group.groupName}-${groupIndex}`} style={styles.groupSection}>
-          <View style={styles.groupGrid}>
-            {group.characters.map((char, charIndex) => {
-              if (char === null) {
-                return (
-                  <View
-                    key={`empty-${groupIndex}-${charIndex}`}
-                    style={[styles.letterContainer, { width: ITEM_WIDTH }]}
-                  >
-                    <View style={[styles.letterCard, styles.emptyCard]} />
-                  </View>
-                );
-              }
-              
-              const overallIndex = groups
-                .slice(0, groupIndex)
-                .reduce((acc, g) => acc + (g?.characters?.length || 0), 0) + charIndex;
-                
-              return (
-                <Animatable.View
-                  key={char.id}
-                  animation="fadeInUp"
-                  delay={overallIndex * 30}
-                  style={[styles.letterContainer, { width: ITEM_WIDTH }]}
-                >
-                  <TouchableOpacity
-                    onPress={() => handleItemPress(char)}
-                    style={[
-                      styles.letterCard,
-                      { backgroundColor: theme?.colors?.surface || '#fff' },
-                    ]}
-                    activeOpacity={0.85}
-                  >
-                    {(char.progress || 0) > 0 && (
-                      <View style={styles.progressContainer}>
-                        <Animated.View
-                          style={[
-                            styles.progressBar,
-                            { width: `${char.progress || 0}%` },
-                          ]}
-                        />
-                      </View>
-                    )}
-
-                    <Text
-                      style={[styles.letterText, { color: theme?.colors?.text || '#000' }]}
-                    >
-                      {char.character}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.letterName,
-                        { color: theme?.colors?.textSecondary || '#666' },
-                      ]}
-                    >
-                      {char.name}
-                    </Text>
-                  </TouchableOpacity>
-                </Animatable.View>
-              );
-            })}
-          </View>
-        </View>
-      );
-    });
-  };
-
-  // Render numbers grid with exact 5 columns
-  const renderNumbersGrid = () => {
-    if (activeTab !== "numbers" || !Array.isArray(currentData)) {
-      return null;
-    }
-
-    const numbers = currentData as NumberItem[];
-    
-    if (!numbers || numbers.length === 0) {
-      return (
-        <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: theme?.colors?.textSecondary || '#666' }]}>
-            No numbers data available
-          </Text>
-        </View>
-      );
-    }
-    
-    return (
-      <View style={styles.alphabetGrid}>
-        {numbers.map((item, index) => renderCharacterCard(item, index))}
-      </View>
-    );
-  };
+  // Key extractor for FlatList
+  const keyExtractor = useCallback((item: AlphabetLetter | NumberItem) => item.id, []);
 
   // Add loading check for theme and state
   if (!theme || !state) {
@@ -440,14 +296,22 @@ export default function AlphabetScreen({ navigation }: Props) {
               color="white"
               style={styles.headerIcon}
             />
-            <View>
+            <View style={styles.headerTextContainer}>
               <Text style={styles.headerTitle}>Japanese Learning</Text>
+              <Text style={styles.jpHeaderTitle}>日本語学習</Text>
               <Text style={styles.headerSubtitle}>
                 {activeTab === "hiragana"
                   ? "Hiragana Characters"
                   : activeTab === "katakana"
                   ? "Katakana Characters"
                   : "Japanese Numbers"}
+              </Text>
+              <Text style={styles.jpHeaderSubtitle}>
+                {activeTab === "hiragana"
+                  ? "ひらがな文字"
+                  : activeTab === "katakana"
+                  ? "カタカナ文字"
+                  : "日本語の数字"}
               </Text>
             </View>
           </View>
@@ -464,9 +328,9 @@ export default function AlphabetScreen({ navigation }: Props) {
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
         {[
-          { key: "hiragana", label: "Hiragana", icon: "text" },
-          { key: "katakana", label: "Katakana", icon: "text-outline" },
-          { key: "numbers", label: "Numbers", icon: "calculator" },
+          { key: "hiragana", label: "Hiragana", jpLabel: "ひらがな", icon: "text" },
+          { key: "katakana", label: "Katakana", jpLabel: "カタカナ", icon: "text-outline" },
+          { key: "numbers", label: "Numbers", jpLabel: "数字", icon: "calculator" },
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
@@ -483,41 +347,81 @@ export default function AlphabetScreen({ navigation }: Props) {
                 activeTab === tab.key ? "white" : theme.colors.textSecondary
               }
             />
-            <Text
-              style={[
-                styles.tabText,
-                {
-                  color:
-                    activeTab === tab.key
-                      ? "white"
-                      : theme.colors.textSecondary,
-                },
-              ]}
-            >
-              {tab.label}
-            </Text>
+            <View style={styles.tabTextContainer}>
+              <Text
+                style={[
+                  styles.tabText,
+                  {
+                    color:
+                      activeTab === tab.key
+                        ? "white"
+                        : theme.colors.textSecondary,
+                  },
+                ]}
+              >
+                {tab.label}
+              </Text>
+              <Text
+                style={[
+                  styles.jpTabText,
+                  {
+                    color:
+                      activeTab === tab.key
+                        ? "rgba(255, 255, 255, 0.8)"
+                        : theme.colors.textSecondary,
+                  },
+                ]}
+              >
+                {tab.jpLabel}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Content Area */}
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {state.isLoading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-              Loading...
-            </Text>
-          </View>
-        ) : activeTab === "numbers" ? (
-          renderNumbersGrid()
-        ) : (
-          renderCharacterGroups()
-        )}
-      </ScrollView>
+      {/* Optimized Content Area with FlatList */}
+      {!isReady ? (
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+            Preparing characters...
+          </Text>
+        </View>
+      ) : state.isLoading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+            Loading...
+          </Text>
+        </View>
+      ) : flattenedData.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+            No data available
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={flattenedData}
+          renderItem={renderCharacterItem}
+          keyExtractor={keyExtractor}
+          numColumns={NUM_COLUMNS}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.flatListContent}
+          columnWrapperStyle={styles.row}
+          // Performance optimizations for mobile
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={NUM_COLUMNS * 2} // Render 2 rows at a time for better performance
+          windowSize={8} // Reduce memory footprint
+          initialNumToRender={NUM_COLUMNS * 3} // Start with 3 rows for faster initial render
+          updateCellsBatchingPeriod={50} // Slower batching for smoother performance
+          getItemLayout={getItemLayout}
+          // Reduce re-renders
+          extraData={theme.colors}
+          // Disable nested scrolling for better performance
+          nestedScrollEnabled={false}
+          // Optimize for large lists
+          legacyImplementation={false}
+        />
+      )}
 
       {/* Enhanced Modal with better UX */}
       <Modal
@@ -648,37 +552,6 @@ export default function AlphabetScreen({ navigation }: Props) {
                       </Text>
                     </Animatable.View>
 
-                    {/* Enhanced Progress Display */}
-                    <Animatable.View 
-                      animation="fadeInUp"
-                      delay={300}
-                      style={styles.progressSection}
-                    >
-                      <Text style={[styles.progressLabel, { color: theme.colors.textSecondary }]}>
-                        Learning Progress
-                      </Text>
-                      <View style={styles.progressBarContainer}>
-                        <View
-                          style={[
-                            styles.progressBarFull,
-                            { backgroundColor: theme.colors.surface },
-                          ]}
-                        >
-                          <Animated.View style={{ flex: 1 }}>
-                            <LinearGradient
-                              colors={["#667eea", "#764ba2"]}
-                              style={[
-                                styles.progressBarFill,
-                                { width: `${selectedItem.progress || 0}%` },
-                              ]}
-                            />
-                          </Animated.View>
-                        </View>
-                        <Text style={[styles.progressText, { color: theme.colors.text }]}>
-                          {selectedItem.progress || 0}%
-                        </Text>
-                      </View>
-                    </Animatable.View>
 
                     {/* Modal Details with staggered animations */}
                     <View style={styles.modalDetails}>
@@ -826,10 +699,25 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "white",
   },
+  headerTextContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  jpHeaderTitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.7)",
+    marginTop: 2,
+    letterSpacing: 1,
+  },
   headerSubtitle: {
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.8)",
     marginTop: 2,
+  },
+  jpHeaderSubtitle: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.6)",
+    marginTop: 1,
   },
   practiceButton: {
     backgroundColor: "rgba(255, 255, 255, 0.2)",
@@ -869,6 +757,15 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  tabTextContainer: {
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  jpTabText: {
+    fontSize: 11,
+    marginTop: 1,
+    opacity: 0.8,
   },
   scrollView: {
     flex: 1,
@@ -1153,6 +1050,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 16,
+  },
+
+  // FlatList optimized styles
+  flatListContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 20,
+  },
+  
+  row: {
+    justifyContent: 'space-between',
+    gap: 8,
   },
   
 

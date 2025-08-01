@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import StorageService from "../services/storageService";
 
 export interface Theme {
   isDark: boolean;
@@ -111,9 +111,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   const loadTheme = async () => {
     try {
-      const saved = await AsyncStorage.getItem("theme");
-      if (saved) {
-        setIsDark(saved === "dark");
+      await StorageService.initialize();
+      const user = await StorageService.getUser();
+      if (user?.preferences?.theme) {
+        setIsDark(user.preferences.theme === "dark");
       }
     } catch (error) {
       console.error("Error loading theme:", error);
@@ -124,7 +125,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     try {
       const newIsDark = !isDark;
       setIsDark(newIsDark);
-      await AsyncStorage.setItem("theme", newIsDark ? "dark" : "light");
+      await StorageService.updateUserPreferences({
+        theme: newIsDark ? "dark" : "light"
+      });
     } catch (error) {
       console.error("Error saving theme:", error);
     }

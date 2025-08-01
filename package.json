@@ -5,17 +5,22 @@
   "scripts": {
     "start": "expo start",
     "launch": "start cmd /k emulator -avd Pixel_3a_API_30 ",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "testBuild:android": "npx expo prebuild --no-install --platform android",
+    "build:android:aab": "eas build --platform android --profile production",
+    "build:android:apk": "eas build --platform android --profile production-apk",
+    "build:android:preview": "eas build --platform android --profile preview",
+    "build:android:dev": "eas build --platform android --profile development"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
-    "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/slider": "^4.5.7",
     "@react-navigation/bottom-tabs": "^7.4.2",
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/stack": "^7.4.2",
+    "canvas": "^3.1.2",
     "expo": "53.0.20",
     "expo-av": "^15.1.7",
     "expo-document-picker": "^13.1.6",
@@ -43,13 +48,16 @@
     "react-native-sqlite-storage": "^6.0.1",
     "react-native-super-grid": "^6.0.1",
     "react-native-web": "^0.20.0",
-    "react-native-webview": "13.13.5"
+    "react-native-webview": "13.13.5",
+    "wa-sqlite": "^1.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@expo/metro-runtime": "^5.0.4",
     "@types/react": "~19.0.10",
     "@types/react-native": "^0.72.8",
+    "sharp": "^0.34.3",
+    "svg2png-cli": "^1.1.1",
     "typescript": "~5.8.3"
   },
   "private": true

@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StatusBar,
   StyleSheet,
   TextInput,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext";
@@ -34,7 +34,6 @@ export default function AddWordScreen({ route, navigation }: Props) {
     notes: "",
     tags: "",
     pronunciation: "",
-    difficulty: 3 as 1 | 2 | 3 | 4 | 5,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -51,7 +50,6 @@ export default function AddWordScreen({ route, navigation }: Props) {
           notes: existingWord.notes,
           tags: existingWord.tags.join(", "),
           pronunciation: existingWord.pronunciation || "",
-          difficulty: existingWord.difficulty,
         });
         setIsEditing(true);
       }
@@ -61,8 +59,8 @@ export default function AddWordScreen({ route, navigation }: Props) {
   const handleSave = async () => {
     if (!formData.text.trim()) {
       alert({
-        title: "Error",
-        message: "Please enter a word",
+        title: "Error / エラー",
+        message: "Please enter a word / 単語を入力してください",
         type: "error",
       })
       return;
@@ -70,8 +68,8 @@ export default function AddWordScreen({ route, navigation }: Props) {
 
     if (!formData.translation.trim()) {
       alert({
-        title: "Error",
-        message: "Please enter a translation",
+        title: "Error / エラー",
+        message: "Please enter a translation / 翻訳を入力してください",
         type: "error",
       });
       return;
@@ -91,13 +89,12 @@ export default function AddWordScreen({ route, navigation }: Props) {
             ? formData.tags.split(",").map((tag) => tag.trim())
             : [],
           pronunciation: formData.pronunciation.trim(),
-          difficulty: formData.difficulty,
         };
 
         await actions.updateWord(wordId, updates);
         alert({
-          title: "Success",
-          message: "Word updated successfully!",
+          title: "Success / 成功",
+          message: "Word updated successfully! / 単語が正常に更新されました！",
           type: "success",
           onConfirm: () => navigation.goBack(),
         });
@@ -113,8 +110,6 @@ export default function AddWordScreen({ route, navigation }: Props) {
             ? formData.tags.split(",").map((tag) => tag.trim())
             : [],
           pronunciation: formData.pronunciation.trim(),
-          difficulty: formData.difficulty,
-          progress: 0,
           rarity: 0,
           dateAdded: new Date().toISOString(),
           reviewCount: 0,
@@ -125,8 +120,8 @@ export default function AddWordScreen({ route, navigation }: Props) {
 
         await actions.addWord(newWord);
         alert({
-          title: "Success",
-          message: "Word added successfully!",
+          title: "Success / 成功",
+          message: "Word added successfully! / 単語が正常に追加されました！",
           type: "success",
           onConfirm: () => navigation.goBack(),
         });
@@ -137,7 +132,6 @@ export default function AddWordScreen({ route, navigation }: Props) {
           notes: "",
           tags: "",
           pronunciation: "",
-          difficulty: 3 as 1 | 2 | 3 | 4 | 5,
         });
       }
     } catch (error) {
@@ -153,8 +147,6 @@ export default function AddWordScreen({ route, navigation }: Props) {
       setIsLoading(false);
     }
   };
-
-  const difficultyStars = [1, 2, 3, 4, 5];
 
   return (
     <SafeAreaView
@@ -181,9 +173,14 @@ export default function AddWordScreen({ route, navigation }: Props) {
               size="sm"
               icon="arrow-back"
             />
-            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-              {isEditing ? "Edit Word" : "Add New Word"}
-            </Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+                {isEditing ? "Edit Word" : "Add New Word"}
+              </Text>
+              <Text style={[styles.jpHeaderTitle, { color: theme.colors.textSecondary }]}>
+                {isEditing ? "単語を編集" : "新しい単語を追加"}
+              </Text>
+            </View>
             <View style={{ width: 40 }} />
           </View>
         </View>
@@ -198,6 +195,9 @@ export default function AddWordScreen({ route, navigation }: Props) {
               <Text style={[styles.label, { color: theme.colors.text }]}>
                Word <Text style={{ color: theme.colors.error }}>*</Text>
               </Text>
+              <Text style={[styles.jpLabel, { color: theme.colors.textSecondary }]}>
+                単語 <Text style={{ color: theme.colors.error }}>*</Text>
+              </Text>
               <TextInput
                 style={[
                   styles.input,
@@ -209,7 +209,7 @@ export default function AddWordScreen({ route, navigation }: Props) {
                 ]}
                 value={formData.text}
                 onChangeText={(text) => setFormData({ ...formData, text })}
-                placeholder="Enter the word"
+                placeholder="Enter the word / 単語を入力"
                 placeholderTextColor={theme.colors.textSecondary}
                 autoCapitalize="none"
               />
@@ -219,6 +219,9 @@ export default function AddWordScreen({ route, navigation }: Props) {
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.colors.text }]}>
                 Translation <Text style={{ color: theme.colors.error }}>*</Text>
+              </Text>
+              <Text style={[styles.jpLabel, { color: theme.colors.textSecondary }]}>
+                翻訳 <Text style={{ color: theme.colors.error }}>*</Text>
               </Text>
               <TextInput
                 style={[
@@ -233,7 +236,7 @@ export default function AddWordScreen({ route, navigation }: Props) {
                 onChangeText={(text) =>
                   setFormData({ ...formData, translation: text })
                 }
-                placeholder="Enter translation"
+                placeholder="Enter translation / 翻訳を入力"
                 placeholderTextColor={theme.colors.textSecondary}
               />
             </View>
@@ -242,6 +245,9 @@ export default function AddWordScreen({ route, navigation }: Props) {
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.colors.text }]}>
                 Definition
+              </Text>
+              <Text style={[styles.jpLabel, { color: theme.colors.textSecondary }]}>
+                定義
               </Text>
               <TextInput
                 style={[
@@ -256,7 +262,7 @@ export default function AddWordScreen({ route, navigation }: Props) {
                 onChangeText={(text) =>
                   setFormData({ ...formData, definition: text })
                 }
-                placeholder="Enter the definition (optional)"
+                placeholder="Enter the definition (optional) / 定義を入力（任意）"
                 placeholderTextColor={theme.colors.textSecondary}
                 multiline
                 numberOfLines={3}
@@ -267,6 +273,9 @@ export default function AddWordScreen({ route, navigation }: Props) {
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.colors.text }]}>
                 Pronunciation
+              </Text>
+              <Text style={[styles.jpLabel, { color: theme.colors.textSecondary }]}>
+                発音
               </Text>
               <TextInput
                 style={[
@@ -281,38 +290,18 @@ export default function AddWordScreen({ route, navigation }: Props) {
                 onChangeText={(text) =>
                   setFormData({ ...formData, pronunciation: text })
                 }
-                placeholder="Enter pronunciation (optional)"
+                placeholder="Enter pronunciation (optional) / 発音を入力（任意）"
                 placeholderTextColor={theme.colors.textSecondary}
               />
-            </View>
-
-            {/* Difficulty */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>
-                Difficulty Level
-              </Text>
-              <View style={styles.difficultyContainer}>
-                {difficultyStars.map((level) => (
-                  <ThemedButton
-                    key={level}
-                    title=""
-                    onPress={() =>
-                      setFormData({ ...formData, difficulty: level as any })
-                    }
-                    variant={
-                      formData.difficulty >= level ? "primary" : "outline"
-                    }
-                    size="sm"
-                    icon="star"
-                  />
-                ))}
-              </View>
             </View>
 
             {/* Tags Input */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.colors.text }]}>
                 Tags
+              </Text>
+              <Text style={[styles.jpLabel, { color: theme.colors.textSecondary }]}>
+                タグ
               </Text>
               <TextInput
                 style={[
@@ -327,7 +316,7 @@ export default function AddWordScreen({ route, navigation }: Props) {
                 onChangeText={(text) =>
                   setFormData({ ...formData, tags: text })
                 }
-                placeholder="Enter tags separated by commas"
+                placeholder="Enter tags separated by commas / カンマ区切りでタグを入力"
                 placeholderTextColor={theme.colors.textSecondary}
               />
             </View>
@@ -336,6 +325,9 @@ export default function AddWordScreen({ route, navigation }: Props) {
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: theme.colors.text }]}>
                 Notes
+              </Text>
+              <Text style={[styles.jpLabel, { color: theme.colors.textSecondary }]}>
+                ノート
               </Text>
               <TextInput
                 style={[
@@ -350,7 +342,7 @@ export default function AddWordScreen({ route, navigation }: Props) {
                 onChangeText={(text) =>
                   setFormData({ ...formData, notes: text })
                 }
-                placeholder="Add any additional notes"
+                placeholder="Add any additional notes / 追加のメモを入力"
                 placeholderTextColor={theme.colors.textSecondary}
                 multiline
                 numberOfLines={3}
@@ -440,10 +432,6 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: "top",
   },
-  difficultyContainer: {
-    flexDirection: "row",
-    gap: 8,
-  },
   footer: {
     padding: 16,
     elevation: 2,
@@ -451,5 +439,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  headerTextContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  jpHeaderTitle: {
+    fontSize: 14,
+    marginTop: 2,
+    letterSpacing: 1,
+  },
+  jpLabel: {
+    fontSize: 12,
+    marginTop: 2,
+    marginBottom: 4,
   },
 });

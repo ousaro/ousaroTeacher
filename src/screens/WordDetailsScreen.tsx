@@ -42,21 +42,12 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
     setWord(updatedWord);
   };
 
-  const toggleDifficult = async () => {
-    if (!word) return;
-    const updatedWord = { ...word, isMarkedDifficult: !word.isMarkedDifficult };
-    await actions.updateWord(word.id, {
-      isMarkedDifficult: !word.isMarkedDifficult,
-    });
-    setWord(updatedWord);
-  };
-
   const deleteWord = async () => {
     if (!word) return;
 
     alert({
-      title: "Delete Word",
-      message: "Are you sure you want to delete this word? This action cannot be undone.",
+      title: "Delete Word / 単語を削除",
+      message: "Are you sure you want to delete this word? This action cannot be undone. / この単語を削除してもよろしいですか？この操作は取り消せません。",
       type: 'error',
       onConfirm: () => {
         actions.deleteWord(word.id);
@@ -64,21 +55,6 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
       },
 
     });
-  };
-
-  const renderDifficultyStars = (difficulty: number) => {
-    return (
-      <View style={styles.starsContainer}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Ionicons
-            key={star}
-            name={star <= difficulty ? "star" : "star-outline"}
-            size={16}
-            color={star <= difficulty ? "#f59e0b" : theme.colors.textSecondary}
-          />
-        ))}
-      </View>
-    );
   };
 
   if (!word) {
@@ -99,6 +75,9 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
           <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
             Word Not Found
           </Text>
+          <Text style={[styles.jpEmptyTitle, { color: theme.colors.textSecondary }]}>
+            単語が見つかりません
+          </Text>
           <Text
             style={[
               styles.emptySubtitle,
@@ -106,6 +85,14 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
             ]}
           >
             The word you're looking for doesn't exist.
+          </Text>
+          <Text
+            style={[
+              styles.jpEmptySubtitle,
+              { color: theme.colors.textSecondary },
+            ]}
+          >
+            お探しの単語は存在しません。
           </Text>
           <ThemedButton
             title="Go Back"
@@ -193,17 +180,6 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
                   /{word.pronunciation}/
                 </Text>
               )}
-              <View style={styles.difficultyRow}>
-                <Text
-                  style={[
-                    styles.difficultyLabel,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  Difficulty:
-                </Text>
-                {renderDifficultyStars(word.difficulty)}
-              </View>
             </View>
 
             <View style={styles.badges}>
@@ -215,7 +191,10 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
                   ]}
                 >
                   <Ionicons name="heart" size={12} color="white" />
-                  <Text style={styles.badgeText}>Favorite</Text>
+                  <View style={styles.badgeTextContainer}>
+                    <Text style={styles.badgeText}>Favorite</Text>
+                    <Text style={styles.jpBadgeText}>お気に入り</Text>
+                  </View>
                 </View>
               )}
               {word.isMarkedDifficult && (
@@ -226,7 +205,10 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
                   ]}
                 >
                   <Ionicons name="alert-circle" size={12} color="white" />
-                  <Text style={styles.badgeText}>Difficult</Text>
+                  <View style={styles.badgeTextContainer}>
+                    <Text style={styles.badgeText}>Difficult</Text>
+                    <Text style={styles.jpBadgeText}>難しい</Text>
+                  </View>
                 </View>
               )}
             </View>
@@ -235,7 +217,7 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
 
         {/* Definition */}
         {word.definition && (
-          <ThemedCard title="Definition" icon="book-outline" style={styles.card}>
+          <ThemedCard title="Definition" subtitle="定義" icon="book-outline" style={styles.card}>
             <Text style={[styles.definition, { color: theme.colors.text }]}>
               {word.definition}
             </Text>
@@ -244,7 +226,7 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
 
         {/* Tags */}
         {word.tags.length > 0 && (
-          <ThemedCard title="Tags" icon="pricetag-outline" style={styles.card}>
+          <ThemedCard title="Tags" subtitle="タグ" icon="pricetag-outline" style={styles.card}>
             <View style={styles.tagsContainer}>
               {word.tags.map((tag, index) => (
                 <View
@@ -261,54 +243,9 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
           </ThemedCard>
         )}
 
-        {/* Progress & Stats */}
-        <ThemedCard title="Learning Progress" icon="analytics-outline" style={styles.card}>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.colors.text }]}>
-                {Math.round(word.progress)}%
-              </Text>
-              <Text
-                style={[
-                  styles.statLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Progress
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.colors.text }]}>
-                {word.reviewCount}
-              </Text>
-              <Text
-                style={[
-                  styles.statLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Reviews
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: theme.colors.text }]}>
-                {word.correctCount}
-              </Text>
-              <Text
-                style={[
-                  styles.statLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Correct
-              </Text>
-            </View>
-          </View>
-        </ThemedCard>
-
         {/* Notes */}
         {word.notes && (
-          <ThemedCard title="Notes" icon="document-text-outline" style={styles.card}>
+          <ThemedCard title="Notes" subtitle="ノート" icon="document-text-outline" style={styles.card}>
             <Text style={[styles.notes, { color: theme.colors.text }]}>
               {word.notes}
             </Text>
@@ -322,15 +259,6 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
             onPress={() => navigation.navigate("AddWord", { wordId: word.id })}
             variant="outline"
             icon="create-outline"
-          />
-
-          <ThemedButton
-            title={
-              word.isMarkedDifficult ? "Mark as Easy" : "Mark as Difficult"
-            }
-            onPress={toggleDifficult}
-            variant={word.isMarkedDifficult ? "secondary" : "outline"}
-            icon={word.isMarkedDifficult ? "checkmark-circle" : "alert-circle"}
           />
         </View>
       </ScrollView>
@@ -403,18 +331,6 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginBottom: 8,
   },
-  difficultyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  difficultyLabel: {
-    fontSize: 14,
-  },
-  starsContainer: {
-    flexDirection: "row",
-    gap: 2,
-  },
   badges: {
     gap: 4,
   },
@@ -454,21 +370,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  statItem: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  statLabel: {
-    fontSize: 12,
-    marginTop: 4,
-  },
   notes: {
     fontSize: 16,
     lineHeight: 24,
@@ -482,5 +383,28 @@ const styles = StyleSheet.create({
     marginBottom: 16,  // Add bottom margin for spacing between cards
     borderRadius: 8,   // Optional: Round the card corners for better aesthetics
     elevation: 2,      // Optional: Elevate effect for card shadow
+  },
+  jpEmptyTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  jpEmptySubtitle: {
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
+    marginBottom: 24,
+  },
+  badgeTextContainer: {
+    alignItems: "center",
+    marginLeft: 4,
+  },
+  jpBadgeText: {
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 10,
+    fontWeight: "400",
+    marginTop: 1,
   },
 });

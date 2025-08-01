@@ -17,9 +17,7 @@ import { ThemedButton } from "../components/ThemedComponents";
 
 export interface FilterState {
   category: string;
-  sortBy: "newest" | "alphabetical" | "difficulty" | "progress" | "mastered";
-  difficultyRange: [number, number];
-  progressRange: [number, number];
+  sortBy: "newest" | "alphabetical";
   dateRange: "all" | "week" | "month" | "3months" | "6months";
   onlyFavorites: boolean;
   direction?: "asc" | "desc";
@@ -33,26 +31,32 @@ interface Props {
 interface CategoryOption {
   id: string;
   label: string;
+  jpLabel: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
   description: string;
+  jpDescription: string;
 }
 
 interface SortOption {
-  key: "newest" | "alphabetical" | "difficulty" | "progress" | "mastered";
+  key: "newest" | "alphabetical";
   label: string;
+  jpLabel: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
   description: string;
+  jpDescription: string;
 }
 
 interface DateRangeOption {
   key: "all" | "week" | "month" | "3months" | "6months";
   label: string;
+  jpLabel: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
 }
 
 interface DirectionOption {
   key: "asc" | "desc";
   label: string;
+  jpLabel: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
 }
 
@@ -72,26 +76,18 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
     {
       id: "all",
       label: "All Words",
+      jpLabel: "すべての単語",
       icon: "apps",
-      description: "Show all words in your library"
+      description: "Show all words in your library",
+      jpDescription: "ライブラリ内のすべての単語を表示"
     },
     {
       id: "new",
       label: "New",
+      jpLabel: "新規",
       icon: "add-circle",
-      description: "Words you haven't started learning"
-    },
-    {
-      id: "learning",
-      label: "Learning",
-      icon: "school",
-      description: "Words you're currently practicing"
-    },
-    {
-      id: "mastered",
-      label: "Mastered",
-      icon: "checkmark-circle",
-      description: "Words you've mastered (80%+ progress)"
+      description: "Words you haven't started learning",
+      jpDescription: "学習を開始していない単語"
     }
   ];
 
@@ -99,46 +95,32 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
     {
       key: "newest",
       label: "Recently Added",
+      jpLabel: "最近追加",
       icon: "time",
-      description: "Show newest words first"
+      description: "Show newest words first",
+      jpDescription: "最新の単語を最初に表示"
     },
     {
       key: "alphabetical",
       label: "Alphabetical",
+      jpLabel: "アルファベット順",
       icon: "text",
-      description: "Sort by word alphabetically"
-    },
-    {
-      key: "difficulty",
-      label: "Difficulty",
-      icon: "trending-up",
-      description: "Show hardest words first"
-    },
-    {
-      key: "progress",
-      label: "Progress",
-      icon: "stats-chart",
-      description: "Show least practiced words first"
-    },
-    {
-      key: "mastered",
-      label: "Mastered First",
-      icon: "checkmark-circle",
-      description: "Show mastered words first"
+      description: "Sort by word alphabetically",
+      jpDescription: "単語をアルファベット順にソート"
     }
   ];
 
   const dateRangeOptions: DateRangeOption[] = [
-    { key: "all", label: "All Time", icon: "infinite" },
-    { key: "week", label: "Last Week", icon: "calendar" },
-    { key: "month", label: "Last Month", icon: "calendar" },
-    { key: "3months", label: "Last 3 Months", icon: "calendar" },
-    { key: "6months", label: "Last 6 Months", icon: "calendar" }
+    { key: "all", label: "All Time", jpLabel: "すべての期間", icon: "infinite" },
+    { key: "week", label: "Last Week", jpLabel: "先週", icon: "calendar" },
+    { key: "month", label: "Last Month", jpLabel: "先月", icon: "calendar" },
+    { key: "3months", label: "Last 3 Months", jpLabel: "過去3ヶ月", icon: "calendar" },
+    { key: "6months", label: "Last 6 Months", jpLabel: "過去6ヶ月", icon: "calendar" }
   ];
 
   const directionOptions : DirectionOption[] = [
-    { key: "asc", label: "Ascending", icon: "arrow-up" },
-    { key: "desc", label: "Descending", icon: "arrow-down" },
+    { key: "asc", label: "Ascending", jpLabel: "昇順", icon: "arrow-up" },
+    { key: "desc", label: "Descending", jpLabel: "降順", icon: "arrow-down" },
     ];
 
 
@@ -150,8 +132,6 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
     const defaultFilters: FilterState = {
       category: "all",
       sortBy: "newest",
-      difficultyRange: [1, 5],
-      progressRange: [0, 100],
       dateRange: "all",
       onlyFavorites: false,
       direction: "asc",
@@ -168,14 +148,22 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
     navigation.goBack();
   };
 
-  const renderSectionHeader = (title: string, subtitle?: string) => (
+  const renderSectionHeader = (title: string, jpTitle: string, subtitle?: string, jpSubtitle?: string) => (
     <View style={styles.sectionHeader}>
       <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
         {title}
       </Text>
+      <Text style={[styles.jpSectionTitle, { color: theme.colors.textSecondary }]}>
+        {jpTitle}
+      </Text>
       {subtitle && (
         <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
           {subtitle}
+        </Text>
+      )}
+      {jpSubtitle && (
+        <Text style={[styles.jpSectionSubtitle, { color: theme.colors.textSecondary }]}>
+          {jpSubtitle}
         </Text>
       )}
     </View>
@@ -183,7 +171,7 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
 
   const renderCategoryOptions = () => (
     <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-      {renderSectionHeader("Category", "Choose what type of words to show")}
+      {renderSectionHeader("Category", "カテゴリ", "Choose what type of words to show", "表示する単語の種類を選択")}
       
       <View style={styles.optionsGrid}>
         {categories.map((category) => (
@@ -227,6 +215,14 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
             <Text style={[styles.optionDescription, { color: theme.colors.textSecondary }]}>
               {category.description}
             </Text>
+            
+            <Text style={[styles.jpOptionLabel, { color: filters.category === category.id ? theme.colors.primary + '80' : theme.colors.textSecondary }]}>
+              {category.jpLabel}
+            </Text>
+            
+            <Text style={[styles.jpOptionDescription, { color: theme.colors.textSecondary }]}>
+              {category.jpDescription}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -235,7 +231,7 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
 
   const renderSortOptions = () => (
     <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-      {renderSectionHeader("Sort By", "Choose how to order your words")}
+      {renderSectionHeader("Sort By", "ソート順", "Choose how to order your words", "単語の並び順を選択")}
       
       <View style={styles.sortOptionsContainer}>
         {sortOptions.map((option) => (
@@ -274,8 +270,17 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
                 ]}>
                   {option.label}
                 </Text>
+                <Text style={[
+                  styles.jpSortOptionLabel,
+                  { color: filters.sortBy === option.key ? theme.colors.primary : theme.colors.textSecondary }
+                ]}>
+                  {option.jpLabel}
+                </Text>
                 <Text style={[styles.sortOptionDescription, { color: theme.colors.textSecondary }]}>
                   {option.description}
+                </Text>
+                <Text style={[styles.jpSortOptionDescription, { color: theme.colors.textSecondary }]}>
+                  {option.jpDescription}
                 </Text>
               </View>
             </View>
@@ -289,113 +294,10 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
     </View>
   );
 
-  const renderRangeSliders = () => (
-    <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-      {renderSectionHeader("Ranges", "Filter by difficulty and progress levels")}
-      
-      {/* Difficulty Range */}
-      <View style={styles.sliderContainer}>
-        <View style={styles.sliderHeader}>
-          <Text style={[styles.sliderLabel, { color: theme.colors.text }]}>
-            Difficulty Level
-          </Text>
-          <Text style={[styles.sliderValue, { color: theme.colors.primary }]}>
-            {filters.difficultyRange[0]} - {filters.difficultyRange[1]}
-          </Text>
-        </View>
-        
-        <View style={styles.sliderWrapper}>
-          <Text style={[styles.sliderMin, { color: theme.colors.textSecondary }]}>1</Text>
-          <View style={styles.sliderTrack}>
-            <Slider
-              style={styles.slider}
-              minimumValue={1}
-              maximumValue={5}
-              step={1}
-              value={filters.difficultyRange[0]}
-              onValueChange={(value: number) => 
-                updateFilters({ 
-                  difficultyRange: [value, Math.max(value, filters.difficultyRange[1])] 
-                })
-              }
-              minimumTrackTintColor={theme.colors.primary}
-              maximumTrackTintColor={theme.colors.textSecondary + '30'}
-              thumbTintColor={theme.colors.primary}
-            />
-            <Slider
-              style={[styles.slider, styles.sliderSecond]}
-              minimumValue={1}
-              maximumValue={5}
-              step={1}
-              value={filters.difficultyRange[1]}
-              onValueChange={(value:number) => 
-                updateFilters({ 
-                  difficultyRange: [Math.min(value, filters.difficultyRange[0]), value] 
-                })
-              }
-              minimumTrackTintColor="transparent"
-              maximumTrackTintColor={theme.colors.primary}
-              thumbTintColor={theme.colors.primary}
-            />
-          </View>
-          <Text style={[styles.sliderMax, { color: theme.colors.textSecondary }]}>5</Text>
-        </View>
-      </View>
-
-      {/* Progress Range */}
-      <View style={styles.sliderContainer}>
-        <View style={styles.sliderHeader}>
-          <Text style={[styles.sliderLabel, { color: theme.colors.text }]}>
-            Progress Level
-          </Text>
-          <Text style={[styles.sliderValue, { color: theme.colors.primary }]}>
-            {filters.progressRange[0]}% - {filters.progressRange[1]}%
-          </Text>
-        </View>
-        
-        <View style={styles.sliderWrapper}>
-          <Text style={[styles.sliderMin, { color: theme.colors.textSecondary }]}>0%</Text>
-          <View style={styles.sliderTrack}>
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={100}
-              step={5}
-              value={filters.progressRange[0]}
-              onValueChange={(value: number) => 
-                updateFilters({ 
-                  progressRange: [value, Math.max(value, filters.progressRange[1])] 
-                })
-              }
-              minimumTrackTintColor={theme.colors.primary}
-              maximumTrackTintColor={theme.colors.textSecondary + '30'}
-              thumbTintColor={theme.colors.primary}
-            />
-            <Slider
-              style={[styles.slider, styles.sliderSecond]}
-              minimumValue={0}
-              maximumValue={100}
-              step={5}
-              value={filters.progressRange[1]}
-              onValueChange={(value: number) => 
-                updateFilters({ 
-                  progressRange: [Math.min(value, filters.progressRange[0]), value] 
-                })
-              }
-              minimumTrackTintColor="transparent"
-              maximumTrackTintColor={theme.colors.primary}
-              thumbTintColor={theme.colors.primary}
-            />
-          </View>
-          <Text style={[styles.sliderMax, { color: theme.colors.textSecondary }]}>100%</Text>
-        </View>
-      </View>
-    </View>
-  );
 
   const renderDateRange = () => (
     <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-      {renderSectionHeader("Date Added", "Filter by when words were added")}
+      {renderSectionHeader("Date Added", "追加日", "Filter by when words were added", "単語が追加された日時でフィルタ")}
       
       <ScrollView 
         horizontal 
@@ -424,12 +326,20 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
               size={16}
               color={filters.dateRange === option.key ? "white" : theme.colors.textSecondary}
             />
-            <Text style={[
-              styles.dateRangeText,
-              { color: filters.dateRange === option.key ? "white" : theme.colors.text }
-            ]}>
-              {option.label}
-            </Text>
+            <View style={styles.dateRangeLabelContainer}>
+              <Text style={[
+                styles.dateRangeText,
+                { color: filters.dateRange === option.key ? "white" : theme.colors.text }
+              ]}>
+                {option.label}
+              </Text>
+              <Text style={[
+                styles.jpDateRangeText,
+                { color: filters.dateRange === option.key ? "rgba(255,255,255,0.8)" : "#888" }
+              ]}>
+                {option.jpLabel}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -438,7 +348,7 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
 
   const renderDirectionOptions = () => (
     <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-        {renderSectionHeader("Direction", "Choose the order of sorting")}
+        {renderSectionHeader("Direction", "方向", "Choose the order of sorting", "ソート順序を選択")}
         
         <View style={styles.directionOptionsContainer}>
         {directionOptions.map((option) => (
@@ -469,6 +379,12 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
             ]}>
                 {option.label}
             </Text>
+            <Text style={[
+                styles.jpDirectionOptionLabel,
+                { color: filters.direction === option.key ? theme.colors.primary + '80' : theme.colors.textSecondary }
+            ]}>
+                {option.jpLabel}
+            </Text>
             </TouchableOpacity>
         ))}
         </View>
@@ -478,7 +394,7 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
 
   const renderToggleOptions = () => (
     <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-      {renderSectionHeader("Additional Filters", "Refine your search further")}
+      {renderSectionHeader("Additional Filters", "追加フィルタ", "Refine your search further", "検索をさらに絞り込む")}
       
       {/* Favorites Toggle */}
       <View style={[styles.toggleOption, { borderBottomColor: theme.colors.background }]}>
@@ -490,8 +406,14 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
             <Text style={[styles.toggleLabel, { color: theme.colors.text }]}>
               Favorites Only
             </Text>
+            <Text style={[styles.jpToggleLabel, { color: theme.colors.textSecondary }]}>
+              お気に入りのみ
+            </Text>
             <Text style={[styles.toggleDescription, { color: theme.colors.textSecondary }]}>
               Show only words marked as favorites
+            </Text>
+            <Text style={[styles.jpToggleDescription, { color: theme.colors.textSecondary }]}>
+              お気に入りに登録された単語のみを表示
             </Text>
           </View>
         </View>
@@ -524,18 +446,28 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
           <Ionicons name="close" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Filters & Sort
-        </Text>
+        <View style={styles.headerTextContainer}>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+            Filters & Sort
+          </Text>
+          <Text style={[styles.jpHeaderTitle, { color: theme.colors.textSecondary }]}>
+            フィルタ＆ソート
+          </Text>
+        </View>
         
         <TouchableOpacity
           onPress={resetFilters}
           style={styles.headerButton}
           activeOpacity={0.7}
         >
-          <Text style={[styles.resetText, { color: theme.colors.primary }]}>
-            Reset
-          </Text>
+          <View style={styles.resetContainer}>
+            <Text style={[styles.resetText, { color: theme.colors.primary }]}>
+              Reset
+            </Text>
+            <Text style={[styles.jpResetText, { color: theme.colors.primary }]}>
+              リセット
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -555,10 +487,6 @@ export default function LibraryFiltersScreen({ navigation, route }: Props) {
 
         <Animatable.View animation="fadeInUp" delay={200}>
           {renderSortOptions()}
-        </Animatable.View>
-
-        <Animatable.View animation="fadeInUp" delay={300}>
-          {renderRangeSliders()}
         </Animatable.View>
 
         <Animatable.View animation="fadeInUp" delay={400}>
@@ -710,9 +638,22 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 2,
   },
+  jpSortOptionLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 1,
+    marginBottom: 2,
+    fontWeight: "500",
+  },
   sortOptionDescription: {
     fontSize: 12,
     lineHeight: 16,
+  },
+  jpSortOptionDescription: {
+    fontSize: 10,
+    color: '#888',
+    lineHeight: 14,
+    marginTop: 1,
   },
   sliderContainer: {
     marginBottom: 20,
@@ -776,6 +717,14 @@ const styles = StyleSheet.create({
   dateRangeText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  dateRangeLabelContainer: {
+    alignItems: "center",
+  },
+  jpDateRangeText: {
+    fontSize: 10,
+    marginTop: 1,
+    fontWeight: "400",
   },
   toggleOption: {
     flexDirection: "row",
@@ -857,12 +806,68 @@ directionOption: {
   borderRadius: 12,
   borderWidth: 2,
   alignItems: "center",
-  flexDirection: "row",
+  flexDirection: "column",
   justifyContent: "center",
 },
 directionOptionLabel: {
   fontSize: 16,
   fontWeight: "600",
-  marginLeft: 10,
+  marginTop: 8,
+  textAlign: "center",
+},
+headerTextContainer: {
+  alignItems: "center",
+  justifyContent: "center",
+  flex: 1,
+},
+jpHeaderTitle: {
+  fontSize: 14,
+  marginTop: 2,
+  letterSpacing: 1,
+},
+resetContainer: {
+  alignItems: "center",
+},
+jpResetText: {
+  fontSize: 10,
+  marginTop: 1,
+  opacity: 0.8,
+},
+jpSectionTitle: {
+  fontSize: 13,
+  marginTop: 2,
+},
+jpSectionSubtitle: {
+  fontSize: 12,
+  lineHeight: 18,
+  marginTop: 4,
+},
+jpOptionLabel: {
+  fontSize: 12,
+  textAlign: "center",
+  marginTop: 2,
+  fontWeight: "500",
+},
+jpOptionDescription: {
+  fontSize: 10,
+  textAlign: "center",
+  lineHeight: 14,
+  marginTop: 2,
+},
+jpDirectionOptionLabel: {
+  fontSize: 12,
+  marginTop: 4,
+  fontWeight: "500",
+  textAlign: "center",
+},
+jpToggleLabel: {
+  fontSize: 12,
+  marginTop: 2,
+  fontWeight: "500",
+},
+jpToggleDescription: {
+  fontSize: 10,
+  lineHeight: 14,
+  marginTop: 2,
 },
 });

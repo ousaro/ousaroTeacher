@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -14,29 +13,15 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
 import { useApp } from "../contexts/AppContext";
 import { useTheme } from "../contexts/ThemeContext";
-import { formatTime } from "../utils/helpers";
 
 interface Props {
   navigation: any;
 }
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state, actions } = useApp();
+  const { state } = useApp();
   const { theme } = useTheme();
-  const { user, words, todayStats, currentStreak } = state;
-
-  useEffect(() => {
-    // Update today's stats when component mounts
-    if (!todayStats) {
-      actions.updateTodayStats({
-        wordsLearned: 0,
-        timeSpent: 0,
-        gamesPlayed: 0,
-        flashcardsReviewed: 0,
-        streakDay: currentStreak + 1,
-      });
-    }
-  }, []);
+  const { words } = state;
 
   const recentWords = words
     .sort(
@@ -44,10 +29,6 @@ export default function HomeScreen({ navigation }: Props) {
         new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
     )
     .slice(0, 5);
-
-  const progressToday = todayStats
-    ? Math.round((todayStats.wordsLearned / (user?.dailyGoal || 20)) * 100)
-    : 0;
 
   return (
     <SafeAreaView
@@ -62,7 +43,7 @@ export default function HomeScreen({ navigation }: Props) {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header with Progress */}
+        {/* Header */}
         <LinearGradient
           colors={theme.gradients.primary}
           style={styles.header}
@@ -71,9 +52,13 @@ export default function HomeScreen({ navigation }: Props) {
         >
           <View style={styles.headerContent}>
             <Animatable.View animation="fadeInLeft" duration={800}>
-              <Text style={styles.greeting}>Welcome back,</Text>
+              <Text style={styles.greeting}>Happy learning</Text>
+              <Text style={styles.jpGreeting}>ハッピーラーニング</Text>
               <Text style={styles.userName}>
-                {user?.name || "Language Learner"}
+                Nihon-go Learner
+              </Text>
+              <Text style={styles.jpUserName}>
+                日本語学習者
               </Text>
             </Animatable.View>
             <Animatable.View animation="fadeInRight" duration={800}>
@@ -85,193 +70,17 @@ export default function HomeScreen({ navigation }: Props) {
               </TouchableOpacity>
             </Animatable.View>
           </View>
-
-          {/* Progress Card */}
-          <Animatable.View animation="fadeInUp" duration={1000} delay={200}>
-            <View
-              style={[
-                styles.progressCard,
-                { backgroundColor: theme.colors.surface },
-              ]}
-            >
-              <View style={styles.progressHeader}>
-                <Ionicons
-                  name="trophy-outline"
-                  size={24}
-                  color={theme.colors.primary}
-                />
-                <Text
-                  style={[styles.progressTitle, { color: theme.colors.text }]}
-                >
-                  Today's Progress
-                </Text>
-              </View>
-
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Text
-                    style={[
-                      styles.statLabel,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    Goal
-                  </Text>
-                  <Text
-                    style={[styles.statValue, { color: theme.colors.text }]}
-                  >
-                    {todayStats?.wordsLearned || 0}/{user?.dailyGoal || 20}
-                  </Text>
-                </View>
-
-                <View style={styles.statItem}>
-                  <Text
-                    style={[
-                      styles.statLabel,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    Streak
-                  </Text>
-                  <View style={styles.streakContainer}>
-                    <Ionicons name="flame" size={20} color="#f59e0b" />
-                    <Text
-                      style={[styles.statValue, { color: theme.colors.text }]}
-                    >
-                      {currentStreak}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.statItem}>
-                  <Text
-                    style={[
-                      styles.statLabel,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    Time
-                  </Text>
-                  <Text
-                    style={[styles.statValue, { color: theme.colors.text }]}
-                  >
-                    {formatTime(todayStats?.timeSpent || 0)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Progress Bar */}
-              <View style={[styles.progressBarContainer, { backgroundColor: theme.colors.border }]}>
-                <Animatable.View
-                  animation="slideInLeft"
-                  duration={1200}
-                  delay={500}
-                  style={[
-                    styles.progressBar,
-                    {
-                      width: `${Math.min(progressToday, 100)}%`,
-                      backgroundColor: theme.colors.success,
-                    },
-                  ]}
-                />
-              </View>
-              <Text
-                style={[
-                  styles.progressText,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                {progressToday}% completed • Keep going!
-              </Text>
-            </View>
-          </Animatable.View>
         </LinearGradient>
 
-        {/* Statistics Cards */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Your Journey
-          </Text>
-          <View style={styles.statsCards}>
-            <Animatable.View
-              animation="bounceIn"
-              delay={300}
-              style={[
-                styles.statsCard,
-                { backgroundColor: theme.colors.surface },
-              ]}
-            >
-              <View style={[styles.cardIcon, { backgroundColor: "#667eea" }]}>
-                <Ionicons name="library" size={24} color="white" />
-              </View>
-              <Text
-                style={[
-                  styles.cardLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Words
-              </Text>
-              <Text style={[styles.cardValue, { color: theme.colors.text }]}>
-                {words.length}
-              </Text>
-            </Animatable.View>
-
-            <Animatable.View
-              animation="bounceIn"
-              delay={400}
-              style={[
-                styles.statsCard,
-                { backgroundColor: theme.colors.surface },
-              ]}
-            >
-              <View style={[styles.cardIcon, { backgroundColor: "#f093fb" }]}>
-                <Ionicons name="game-controller" size={24} color="white" />
-              </View>
-              <Text
-                style={[
-                  styles.cardLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Games
-              </Text>
-              <Text style={[styles.cardValue, { color: theme.colors.text }]}>
-                {todayStats?.gamesPlayed || 0}
-              </Text>
-            </Animatable.View>
-
-            <Animatable.View
-              animation="bounceIn"
-              delay={500}
-              style={[
-                styles.statsCard,
-                { backgroundColor: theme.colors.surface },
-              ]}
-            >
-              <View style={[styles.cardIcon, { backgroundColor: "#4facfe" }]}>
-                <Ionicons name="card" size={24} color="white" />
-              </View>
-              <Text
-                style={[
-                  styles.cardLabel,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Cards
-              </Text>
-              <Text style={[styles.cardValue, { color: theme.colors.text }]}>
-                {todayStats?.flashcardsReviewed || 0}
-              </Text>
-            </Animatable.View>
-          </View>
-        </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
               Quick Actions
+            </Text>
+            <Text style={styles.jpSectionTitle}>
+              クイックアクション
             </Text>
           </View>
 
@@ -303,6 +112,9 @@ export default function HomeScreen({ navigation }: Props) {
                   >
                     Practice
                   </Text>
+                  <Text style={styles.jpActionText}>
+                    練習
+                  </Text>
                   <Text
                     style={[
                       styles.actionSubtext,
@@ -310,6 +122,9 @@ export default function HomeScreen({ navigation }: Props) {
                     ]}
                   >
                     Mini-games & quizzes
+                  </Text>
+                  <Text style={styles.jpActionSubtext}>
+                    ミニゲーム＆クイズ
                   </Text>
                 </View>
                 <Ionicons
@@ -343,6 +158,9 @@ export default function HomeScreen({ navigation }: Props) {
                   >
                     Library
                   </Text>
+                  <Text style={styles.jpActionText}>
+                    ライブラリ
+                  </Text>
                   <Text
                     style={[
                       styles.actionSubtext,
@@ -350,6 +168,9 @@ export default function HomeScreen({ navigation }: Props) {
                     ]}
                   >
                     Manage your words and sentences
+                  </Text>
+                  <Text style={styles.jpActionSubtext}>
+                    単語と文章を管理
                   </Text>
                 </View>
                 <Ionicons
@@ -366,6 +187,9 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
             Japanese Basics
+          </Text>
+          <Text style={styles.jpSectionTitle}>
+            日本語の基礎
           </Text>
           <View style={styles.quickActions}>
             <Animatable.View
@@ -389,7 +213,10 @@ export default function HomeScreen({ navigation }: Props) {
                   <Text
                     style={[styles.actionText, { color: theme.colors.text }]}
                   >
-                    Hiragana
+                    Base Characters and Numbers
+                  </Text>
+                  <Text style={styles.jpActionText}>
+                    基本文字と数字
                   </Text>
                   <Text
                     style={[
@@ -398,6 +225,9 @@ export default function HomeScreen({ navigation }: Props) {
                     ]}
                   >
                     Learn Japanese characters
+                  </Text>
+                  <Text style={styles.jpActionSubtext}>
+                    日本語の文字を学ぶ
                   </Text>
                 </View>
                 <Ionicons
@@ -414,9 +244,14 @@ export default function HomeScreen({ navigation }: Props) {
         {words.length !== 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                Recent Words
-              </Text>
+              <View>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                  Recent Words
+                </Text>
+                <Text style={styles.jpSectionTitle}>
+                  最近の単語
+                </Text>
+              </View>
 
               <TouchableOpacity
                 onPress={() => navigation.navigate("Library")}
@@ -425,11 +260,18 @@ export default function HomeScreen({ navigation }: Props) {
                   { backgroundColor: theme.colors.primary + "20" },
                 ]}
               >
-                <Text
-                  style={[styles.viewAllText, { color: theme.colors.primary }]}
-                >
-                  View All
-                </Text>
+                <View style={styles.viewAllTextContainer}>
+                  <Text
+                    style={[styles.viewAllText, { color: theme.colors.primary }]}
+                  >
+                    View All
+                  </Text>
+                  <Text
+                    style={[styles.jpViewAllText, { color: theme.colors.primary }]}
+                  >
+                    すべて表示
+                  </Text>
+                </View>
                 <Ionicons
                   name="arrow-forward"
                   size={16}
@@ -537,11 +379,21 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.8)",
     fontWeight: "500",
   },
+  jpGreeting: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.6)",
+    marginTop: 2,
+  },
   userName: {
     fontSize: 28,
     color: "white",
     fontWeight: "bold",
     marginTop: 5,
+  },
+  jpUserName: {
+    fontSize: 16,
+    color: "rgba(255, 255, 255, 0.7)",
+    marginTop: 2,
   },
   settingsButton: {
     width: 50,
@@ -555,68 +407,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
-  },
-  progressCard: {
-    borderRadius: 24,
-    padding: 24,
-    marginTop: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  progressHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-    gap: 8,
-  },
-  progressTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 12,
-    marginBottom: 8,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  streakContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 6,
-    marginBottom: 12,
-    overflow: "hidden",
-  },
-  progressBar: {
-    height: "100%",
-    borderRadius: 6,
-  },
-  progressText: {
-    fontSize: 14,
-    textAlign: "center",
-    fontWeight: "500",
   },
   section: {
     paddingHorizontal: 20,
@@ -767,5 +557,108 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
+  },
+  // New styles for simplified home screen
+  seeAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginRight: 4,
+  },
+  wordsCard: {
+    marginTop: 12,
+  },
+  wordsOverview: {
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  wordsStats: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 20,
+  },
+  wordsStat: {
+    alignItems: "center",
+  },
+  wordsStatNumber: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  wordsStatLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  emptyWordsState: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  emptyWordsText: {
+    fontSize: 16,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  addFirstWordButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  addFirstWordText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  recentWords: {
+    gap: 12,
+  },
+  recentWordItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  recentWordText: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  recentWordDefinition: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  jpSectionTitle: {
+    fontSize: 13,
+    color: "#888",
+    marginTop: 2,
+  },
+  jpActionText: {
+    fontSize: 13,
+    color: "#888",
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  jpActionSubtext: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 2,
+  },
+  viewAllTextContainer: {
+    alignItems: "center",
+  },
+  jpViewAllText: {
+    fontSize: 10,
+    opacity: 0.7,
+    marginTop: 1,
   },
 });

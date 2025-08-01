@@ -8,65 +8,67 @@ import React, {
 import { 
   Word, 
   User, 
-  FlashCard, 
-  DailyStats, 
-  UserPreferences, 
-  AlphabetLetter, 
-  NumberItem, 
-  CharacterGroup
+  UserPreferences
 } from "../types";
 import storageService  from "../services/storageService";
-import { hiraganaGroups, katakanaGroups, japaneseNumbers } from "../data/alphabetData";
+import PerformanceMonitor from "../utils/performanceMonitor";
 
+export enum ErrorType {
+  STORAGE_INIT = 'storage_init',
+  DATA_LOAD = 'data_load',
+  DATA_SAVE = 'data_save',
+  USER_CREATE = 'user_create',
+  NETWORK = 'network',
+  UNKNOWN = 'unknown'
+}
+
+export interface AppError {
+  type: ErrorType;
+  message: string;
+  details?: string;
+  timestamp: number;
+  canRetry: boolean;
+}
 
 interface AppState {
   user: User | null;
   words: Word[];
-  flashCards: FlashCard[];
-  alphabetLetters: CharacterGroup[];
-  numbers: NumberItem[];
-  dailyStats: DailyStats[];
   isLoading: boolean;
-  error: string | null;
-  currentStreak: number;
-  todayStats: DailyStats | null;
+  error: AppError | null;
+  isInitialized: boolean;
+  retryAttempts: number;
 }
 
 type AppAction =
   | { type: "SET_LOADING"; payload: boolean }
-  | { type: "SET_ERROR"; payload: string | null }
+  | { type: "SET_ERROR"; payload: AppError | null }
   | { type: "SET_USER"; payload: User | null }
   | { type: "UPDATE_USER_PREFERENCES"; payload: Partial<UserPreferences> }
   | { type: "SET_WORDS"; payload: Word[] }
   | { type: "ADD_WORD"; payload: Word }
   | { type: "UPDATE_WORD"; payload: { id: string; updates: Partial<Word> } }
   | { type: "DELETE_WORD"; payload: string }
-  | { type: "SET_FLASHCARDS"; payload: FlashCard[] }
-  | { type: "ADD_FLASHCARD"; payload: FlashCard }
-  | {
-      type: "UPDATE_FLASHCARD";
-      payload: { id: string; updates: Partial<FlashCard> };
-    }
-  | { type: "SET_ALPHABET_LETTERS"; payload: CharacterGroup[] }
-  | { type: "UPDATE_ALPHABET_LETTER"; payload: { id: string; updates: Partial<AlphabetLetter> } }
-  | { type: "SET_NUMBERS"; payload: NumberItem[] }
-  | { type: "UPDATE_NUMBER"; payload: { id: string; updates: Partial<NumberItem> } }
-  | { type: "SET_DAILY_STATS"; payload: DailyStats[] }
-  | { type: "UPDATE_TODAY_STATS"; payload: Partial<DailyStats> }
-  | { type: "UPDATE_STREAK"; payload: number };
+  | { type: "SET_INITIALIZED"; payload: boolean }
+  | { type: "INCREMENT_RETRY"; payload?: void }
+  | { type: "RESET_RETRY"; payload?: void };
 
 const initialState: AppState = {
   user: null,
   words: [],
-  flashCards: [],
-  alphabetLetters: [],
-  numbers: [],
-  dailyStats: [],
   isLoading: true,
   error: null,
-  currentStreak: 0,
-  todayStats: null,
+  isInitialized: false,
+  retryAttempts: 0,
 };
+
+// Helper function to create standardized errors
+const createAppError = (type: ErrorType, message: string, details?: string, canRetry: boolean = true): AppError => ({
+  type,
+  message,
+  details,
+  timestamp: Date.now(),
+  canRetry,
+});
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -74,7 +76,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, isLoading: action.payload };
 
     case "SET_ERROR":
-      return { ...state, error: action.payload };
+      return { ...state, error: action.payload, isLoading: false };
 
     case "SET_USER":
       return { ...state, user: action.payload };
@@ -115,79 +117,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
         words: state.words.filter((word) => word.id !== action.payload),
       };
 
-    case "SET_FLASHCARDS":
-      return { ...state, flashCards: action.payload };
+    case "SET_INITIALIZED":
+      return { ...state, isInitialized: action.payload };
 
-    case "ADD_FLASHCARD":
-      return { ...state, flashCards: [...state.flashCards, action.payload] };
+    case "INCREMENT_RETRY":
+      return { ...state, retryAttempts: state.retryAttempts + 1 };
 
-    case "UPDATE_FLASHCARD":
-      return {
-        ...state,
-        flashCards: state.flashCards.map((card) =>
-          card.id === action.payload.id
-            ? { ...card, ...action.payload.updates }
-            : card,
-        ),
-      };
-
-    case "SET_ALPHABET_LETTERS":
-      return { ...state, alphabetLetters: action.payload };
-
-    case "UPDATE_ALPHABET_LETTER":
-      return {
-        ...state,
-        alphabetLetters: state.alphabetLetters.map((group) => ({
-          ...group,
-          characters: group.characters.map((char) =>
-            char && char.id === action.payload.id
-              ? { ...char, ...action.payload.updates }
-              : char
-          ),
-        })),
-      };
-
-    case "SET_NUMBERS":
-      return { ...state, numbers: action.payload };
-
-    case "UPDATE_NUMBER":
-      return {
-        ...state,
-        numbers: state.numbers.map((number) =>
-          number.id === action.payload.id
-            ? { ...number, ...action.payload.updates }
-            : number,
-        ),
-      };
-
-    case "SET_DAILY_STATS":
-      return { ...state, dailyStats: action.payload };
-
-    case "UPDATE_TODAY_STATS":
-      const today = new Date().toISOString().split("T")[0];
-      const existingStats = state.dailyStats.find((s) => s.date === today);
-      const updatedStats = existingStats
-        ? { ...existingStats, ...action.payload }
-        : {
-            date: today,
-            wordsLearned: 0,
-            timeSpent: 0,
-            gamesPlayed: 0,
-            flashcardsReviewed: 0,
-            streakDay: state.currentStreak + 1,
-            ...action.payload,
-          };
-
-      return {
-        ...state,
-        todayStats: updatedStats,
-        dailyStats: state.dailyStats
-          .map((s) => (s.date === today ? updatedStats : s))
-          .concat(existingStats ? [] : [updatedStats]),
-      };
-
-    case "UPDATE_STREAK":
-      return { ...state, currentStreak: action.payload };
+    case "RESET_RETRY":
+      return { ...state, retryAttempts: 0 };
 
     default:
       return state;
@@ -199,19 +136,15 @@ interface AppContextType {
   dispatch: React.Dispatch<AppAction>;
   actions: {
     loadInitialData: () => Promise<void>;
-    initializeAlphabetData: () => Promise<void>;
     addWord: (word: Word) => Promise<void>;
     updateWord: (id: string, updates: Partial<Word>) => Promise<void>;
     deleteWord: (id: string) => Promise<void>;
-    addFlashCard: (flashCard: FlashCard) => Promise<void>;
-    updateFlashCard: (id: string, updates: Partial<FlashCard>) => Promise<void>;
-    updateAlphabetLetterProgress: (id: string, increment?: number) => Promise<void>;
-    updateNumberProgress: (id: string, increment?: number) => Promise<void>;
-    getAlphabetGroupsByLanguage: (language: string) => CharacterGroup[];
-    getNumbersByLanguage: (language: string) => NumberItem[];
-    updateTodayStats: (updates: Partial<DailyStats>) => Promise<void>;
     createDefaultUser: () => Promise<void>;
     updateUserPreferences: (preferences: Partial<UserPreferences>) => Promise<void>;
+    reinitializeStorage: () => Promise<void>;
+    clearError: () => void;
+    retryLastAction: () => Promise<void>;
+    forceReload: () => Promise<void>;
   };
 }
 
@@ -221,90 +154,66 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
   const loadInitialData = async () => {
+    const maxRetries = 3;
+    const currentAttempt = state.retryAttempts + 1;
+    
     try {
-      // Initialize alphabet and numbers if not already done
-      await initializeAlphabetData();
-
       dispatch({ type: "SET_LOADING", payload: true });
+      dispatch({ type: "SET_ERROR", payload: null });
 
-      const [user, words, flashCards, alphabetLetters, numbers, dailyStats] = await Promise.all([
+      // Initialize storage service first
+      await storageService.initialize();
+      dispatch({ type: "SET_INITIALIZED", payload: true });
+
+      // Load core data (user, words)
+      const [user, words] = await Promise.all([
         storageService.getUser(),
         storageService.getWords(),
-        storageService.getFlashCards(),
-        storageService.getAlphabetLetters(),
-        storageService.getNumbers(),
-        storageService.getDailyStats(),
       ]);
 
-      dispatch({ type: "SET_USER", payload: user });
-      dispatch({ type: "UPDATE_USER_PREFERENCES", payload: user?.preferences || {} });
+      // Create default user if none exists
+      if (!user) {
+        await createDefaultUser();
+        const newUser = await storageService.getUser();
+        dispatch({ type: "SET_USER", payload: newUser });
+      } else {
+        dispatch({ type: "SET_USER", payload: user });
+      }
+
       dispatch({ type: "SET_WORDS", payload: words });
-      dispatch({ type: "SET_FLASHCARDS", payload: flashCards });
-      dispatch({ type: "SET_ALPHABET_LETTERS", payload: alphabetLetters });
-      dispatch({ type: "SET_NUMBERS", payload: numbers });
-      dispatch({ type: "SET_DAILY_STATS", payload: dailyStats });
-
-      // Calculate current streak
-      const today = new Date().toISOString().split("T")[0];
-      const sortedStats = dailyStats.sort(
-        (a: DailyStats, b: DailyStats) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-      );
-      let streak = 0;
-      let currentDate = new Date();
-
-      for (const stat of sortedStats) {
-        const statDate = new Date(stat.date);
-        if (
-          statDate.toISOString().split("T")[0] ===
-          currentDate.toISOString().split("T")[0]
-        ) {
-          streak++;
-          currentDate.setDate(currentDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
-
-      dispatch({ type: "UPDATE_STREAK", payload: streak });
-
-      // Set today's stats
-      const todayStats = dailyStats.find((s: DailyStats) => s.date === today);
-      if (todayStats) {
-        dispatch({ type: "UPDATE_TODAY_STATS", payload: todayStats });
-      }
-
-
+      dispatch({ type: "RESET_RETRY" });
 
     } catch (error) {
       console.error("Error loading initial data:", error);
-      dispatch({ type: "SET_ERROR", payload: "Failed to load app data" });
+      dispatch({ type: "INCREMENT_RETRY" });
+      
+      let errorType = ErrorType.DATA_LOAD;
+      let errorMessage = "Failed to load app data";
+      let canRetry = currentAttempt < maxRetries;
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Storage initialization failed')) {
+          errorType = ErrorType.STORAGE_INIT;
+          errorMessage = "Database initialization failed";
+        }
+        
+        dispatch({ 
+          type: "SET_ERROR", 
+          payload: createAppError(
+            errorType, 
+            errorMessage, 
+            error.message,
+            canRetry
+          )
+        });
+      } else {
+        dispatch({ 
+          type: "SET_ERROR", 
+          payload: createAppError(errorType, errorMessage, String(error), canRetry)
+        });
+      }
     } finally {
       dispatch({ type: "SET_LOADING", payload: false });
-    }
-  };
-
-  const initializeAlphabetData = async () => {
-    try {
-      // Initialize hiragana alphabet
-      await storageService.initializeAlphabetLetters(hiraganaGroups, "hiragana");
-
-      // Initialize katakana alphabet
-      await storageService.initializeAlphabetLetters(katakanaGroups, "katakana");
-
-      // Initialize Japanese numbers
-      await storageService.initializeNumbers(japaneseNumbers, "japanese");
-
-      // Reload the data to update state
-      const [updatedAlphabetLetters, updatedNumbers] = await Promise.all([
-        storageService.getAlphabetLetters(),
-        storageService.getNumbers(),
-      ]);
-
-      dispatch({ type: "SET_ALPHABET_LETTERS", payload: updatedAlphabetLetters });
-      dispatch({ type: "SET_NUMBERS", payload: updatedNumbers });
-
-    } catch (error) {
-      console.error("Error initializing alphabet data:", error);
     }
   };
 
@@ -314,7 +223,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "ADD_WORD", payload: word });
     } catch (error) {
       console.error("Error adding word:", error);
-      dispatch({ type: "SET_ERROR", payload: "Failed to add word" });
+      dispatch({ 
+        type: "SET_ERROR", 
+        payload: createAppError(
+          ErrorType.DATA_SAVE, 
+          "Failed to add word", 
+          error instanceof Error ? error.message : String(error)
+        )
+      });
     }
   };
 
@@ -324,7 +240,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "UPDATE_WORD", payload: { id, updates } });
     } catch (error) {
       console.error("Error updating word:", error);
-      dispatch({ type: "SET_ERROR", payload: "Failed to update word" });
+      dispatch({ 
+        type: "SET_ERROR", 
+        payload: createAppError(
+          ErrorType.DATA_SAVE, 
+          "Failed to update word", 
+          error instanceof Error ? error.message : String(error)
+        )
+      });
     }
   };
 
@@ -334,99 +257,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "DELETE_WORD", payload: id });
     } catch (error) {
       console.error("Error deleting word:", error);
-      dispatch({ type: "SET_ERROR", payload: "Failed to delete word" });
-    }
-  };
-
-  const addFlashCard = async (flashCard: FlashCard) => {
-    try {
-      await storageService.addFlashCard(flashCard);
-      dispatch({ type: "ADD_FLASHCARD", payload: flashCard });
-    } catch (error) {
-      console.error("Error adding flashcard:", error);
-      dispatch({ type: "SET_ERROR", payload: "Failed to add flashcard" });
-    }
-  };
-
-  const updateFlashCard = async (id: string, updates: Partial<FlashCard>) => {
-    try {
-      await storageService.updateFlashCard(id, updates);
-      dispatch({ type: "UPDATE_FLASHCARD", payload: { id, updates } });
-    } catch (error) {
-      console.error("Error updating flashcard:", error);
-      dispatch({ type: "SET_ERROR", payload: "Failed to update flashcard" });
-    }
-  };
-
-  const updateAlphabetLetterProgress = async (id: string, increment: number = 10) => {
-    try {
-      await storageService.updateAlphabetProgress(id, increment);
-      
-      // Find the letter in the current state to get current progress
-      let foundLetter: AlphabetLetter | null = null;
-      for (const group of state.alphabetLetters) {
-        const letter = group.characters.find((char): char is AlphabetLetter => 
-          char !== null && char.id === id
-        );
-        if (letter) {
-          foundLetter = letter;
-          break;
-        }
-      }
-      
-      if (foundLetter) {
-        const newProgress = Math.min(100, (foundLetter.progress || 0) + increment);
-        dispatch({ 
-          type: "UPDATE_ALPHABET_LETTER", 
-          payload: { id, updates: { progress: newProgress } } 
-        });
-      }
-    } catch (error) {
-      console.error("Error updating alphabet letter progress:", error);
-    }
-  };
-
-  const updateNumberProgress = async (id: string, increment: number = 10) => {
-    try {
-      await storageService.updateNumberProgress(id, increment);
-      const updatedNumber = state.numbers.find(n => n.id === id);
-      if (updatedNumber) {
-        const newProgress = Math.min(100, (updatedNumber.progress || 0) + increment);
-        dispatch({ 
-          type: "UPDATE_NUMBER", 
-          payload: { id, updates: { progress: newProgress } } 
-        });
-      }
-    } catch (error) {
-      console.error("Error updating number progress:", error);
-    }
-  };
-
-  const getAlphabetGroupsByLanguage = (language: string): CharacterGroup[] => {
-    return state.alphabetLetters.filter(group => group.language === language);
-  };
-
-  const getNumbersByLanguage = (language: string): NumberItem[] => {
-    return state.numbers.filter(number => number.language === language);
-  };
-
-  const updateTodayStats = async (updates: Partial<DailyStats>) => {
-    try {
-      const today = new Date().toISOString().split("T")[0];
-      const currentStats = state.todayStats || {
-        date: today,
-        wordsLearned: 0,
-        timeSpent: 0,
-        gamesPlayed: 0,
-        flashcardsReviewed: 0,
-        streakDay: state.currentStreak + 1,
-      };
-
-      const updatedStats = { ...currentStats, ...updates };
-      await storageService.saveDailyStats(updatedStats);
-      dispatch({ type: "UPDATE_TODAY_STATS", payload: updates });
-    } catch (error) {
-      console.error("Error updating daily stats:", error);
+      dispatch({ 
+        type: "SET_ERROR", 
+        payload: createAppError(
+          ErrorType.DATA_SAVE, 
+          "Failed to delete word", 
+          error instanceof Error ? error.message : String(error)
+        )
+      });
     }
   };
 
@@ -437,7 +275,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "UPDATE_USER_PREFERENCES", payload: preferences });
       } catch (error) {
         console.error("Error updating user preferences:", error);
-        dispatch({ type: "SET_ERROR", payload: "Failed to update preferences" });
+        dispatch({ 
+          type: "SET_ERROR", 
+          payload: createAppError(
+            ErrorType.DATA_SAVE, 
+            "Failed to update preferences", 
+            error instanceof Error ? error.message : String(error)
+          )
+        });
       }
     }
   };
@@ -449,17 +294,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         name: "Ousaro",
         nativeLanguage: "English",
         learningLanguages: ["Japanese"],
-        currentStreak: 0,
-        longestStreak: 0,
-        totalWordsLearned: 0,
-        dailyGoal: 20,
-        achievements: [],
         preferences: {
           theme: "dark",
           primaryColor: "#0ea5e9",
           notifications: true,
           reminderTime: "19:00",
-          practiceMode: "mixed",
+          practiceMode: "vocabulary",
           autoPlayAudio: true,
           showTranslations: true,
           firstTimeUser: false,
@@ -473,25 +313,91 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const reinitializeStorage = async () => {
+    try {
+      console.log("Reinitializing storage service...");
+      await storageService.resetStorageService();
+      dispatch({ type: "SET_INITIALIZED", payload: true });
+      console.log("Storage service reinitialized successfully");
+    } catch (error) {
+      console.error("Error reinitializing storage service:", error);
+      dispatch({ 
+        type: "SET_ERROR", 
+        payload: createAppError(
+          ErrorType.STORAGE_INIT, 
+          "Failed to reinitialize storage", 
+          error instanceof Error ? error.message : String(error),
+          false
+        )
+      });
+      throw error;
+    }
+  };
+
+  const clearError = () => {
+    dispatch({ type: "SET_ERROR", payload: null });
+  };
+
+  const retryLastAction = async () => {
+    if (state.error?.canRetry && state.retryAttempts < 3) {
+      dispatch({ type: "SET_ERROR", payload: null });
+      
+      // Based on error type, retry the appropriate action
+      switch (state.error.type) {
+        case ErrorType.STORAGE_INIT:
+        case ErrorType.DATA_LOAD:
+          await loadInitialData();
+          break;
+        default:
+          // For other errors, just clear and let user retry manually
+          dispatch({ type: "RESET_RETRY" });
+          break;
+      }
+    }
+  };
+
+  const forceReload = async () => {
+    dispatch({ type: "RESET_RETRY" });
+    dispatch({ type: "SET_ERROR", payload: null });
+    dispatch({ type: "SET_INITIALIZED", payload: false });
+    await loadInitialData();
+  };
+
   const actions = {
     loadInitialData,
-    initializeAlphabetData,
     addWord,
     updateWord,
     deleteWord,
-    addFlashCard,
-    updateFlashCard,
-    updateTodayStats,
     createDefaultUser,
     updateUserPreferences,
-    updateAlphabetLetterProgress,
-    updateNumberProgress,
-    getAlphabetGroupsByLanguage,
-    getNumbersByLanguage,
+    reinitializeStorage,
+    clearError,
+    retryLastAction,
+    forceReload,
   };
 
   useEffect(() => {
     loadInitialData();
+    
+    // Set up periodic cache cleanup to prevent memory leaks
+    const cacheCleanupInterval = setInterval(() => {
+      storageService.clearExpiredCache();
+    }, 5 * 60 * 1000); // Clean up every 5 minutes
+    
+    // Set up performance monitoring (only in development)
+    const performanceLogInterval = setInterval(() => {
+      PerformanceMonitor.logStats();
+      PerformanceMonitor.logMemoryUsage();
+      PerformanceMonitor.reset(); // Reset stats to prevent memory buildup
+    }, 60 * 1000); // Log every minute in dev mode
+    
+    // Cleanup function
+    return () => {
+      clearInterval(cacheCleanupInterval);
+      clearInterval(performanceLogInterval);
+      // Force write any pending data when component unmounts
+      storageService.forceWrite().catch(console.error);
+    };
   }, []);
 
   return (

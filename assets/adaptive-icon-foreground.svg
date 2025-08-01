@@ -1,0 +1,52 @@
+<!-- OusaroTeacher Adaptive Icon Foreground SVG - Japanese Character (Dark Theme) -->
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Text gradient (light on dark) -->
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F8FAFC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E2E8F0;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.3)"/>
+    </filter>
+    
+    <!-- Glow effect -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Japanese character "学" (gaku - learning) as path, centered for adaptive icon -->
+  <g transform="translate(512, 512)" filter="url(#glow)">
+    <!-- Drawing the character "学" as vector paths for better rendering (scaled for adaptive icon) -->
+    <!-- Top horizontal stroke -->
+    <rect x="-96" y="-144" width="192" height="16" rx="8" ry="8" fill="url(#textGradient)"/>
+    
+    <!-- Left diagonal stroke -->
+    <rect x="-80" y="-128" width="16" height="96" rx="8" ry="8" fill="url(#textGradient)" transform="rotate(-15)"/>
+    
+    <!-- Right diagonal stroke -->
+    <rect x="64" y="-128" width="16" height="96" rx="8" ry="8" fill="url(#textGradient)" transform="rotate(15)"/>
+    
+    <!-- Middle horizontal stroke -->
+    <rect x="-64" y="-64" width="128" height="12" rx="6" ry="6" fill="url(#textGradient)"/>
+    
+    <!-- Center vertical stroke -->
+    <rect x="-6" y="-64" width="12" height="160" rx="6" ry="6" fill="url(#textGradient)"/>
+    
+    <!-- Bottom left stroke -->
+    <rect x="-48" y="32" width="64" height="12" rx="6" ry="6" fill="url(#textGradient)" transform="rotate(-10)"/>
+    
+    <!-- Bottom right stroke -->
+    <rect x="-16" y="32" width="64" height="12" rx="6" ry="6" fill="url(#textGradient)" transform="rotate(10)"/>
+    
+    <!-- Bottom horizontal stroke -->
+    <rect x="-80" y="80" width="160" height="16" rx="8" ry="8" fill="url(#textGradient)"/>
+  </g>
+</svg>

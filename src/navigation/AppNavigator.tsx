@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { View, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -8,25 +9,19 @@ import { useTheme } from "../contexts/ThemeContext";
 import { RootStackParamList, TabParamList } from "../types";
 
 // Import screens
-import OnboardingScreen from "../screens/OnboardingScreen";
 import HomeScreen from "../screens/HomeScreen";
 import LibraryScreen from "../screens/LibraryScreen";
 import PracticeScreen from "../screens/PracticeScreen";
 import AlphabetScreen from "../screens/AlphabetScreen";
-import ProfileScreen from "../screens/ProfileScreen";
-import GrammarScreen from "../screens/GrammarScreen";
 import WordDetailsScreen from "../screens/WordDetailsScreen";
 import AddWordScreen from "../screens/AddWordScreen";
-import SettingsScreen from "../screens/SettingsScreen";
-import AchievementsScreen from "../screens/AchievementsScreen";
-import StatisticsScreen from "../screens/StatisticsScreen";
 import AboutApp from "../screens/AboutApp";
 import LibraryFiltersScreen from "../screens/LibraryFilterSceen";
-import ErrorSceen from "../screens/ErrorSceen";
+import ErrorScreen from "../screens/ErrorScreen";
 import LoadingScreen from "../screens/LoadingScreen";
 
 import { useApp } from "../contexts/AppContext";
-import LessonDetailsScreen from "../screens/LessonDetailsScree";
+import SettingsScreen from "../screens/SettingsScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -45,14 +40,12 @@ function TabNavigator() {
             iconName = focused ? "home" : "home-outline";
           } else if (route.name === "Library") {
             iconName = focused ? "library" : "library-outline";
-          } else if (route.name === "Grammar") {
-            iconName = focused ? "book" : "book-outline";
           } else if (route.name === "Practice") {
             iconName = focused ? "game-controller" : "game-controller-outline";
           } else if (route.name === "Japanese") {
             iconName = focused ? "text" : "text-outline";
-          } else if (route.name === "Profile") {
-            iconName = focused ? "person" : "person-outline";
+          } else if (route.name === "Settings") {
+            iconName = focused ? "settings" : "settings-outline";
           } else {
             iconName = "help-outline";
           }
@@ -65,9 +58,9 @@ function TabNavigator() {
           backgroundColor: theme.colors.tabBar,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 5,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
-          height: 60 + (insets.bottom > 0 ? insets.bottom : 8),
+          height: 75 + (insets.bottom > 0 ? insets.bottom : 8),
           shadowColor: theme.isDark ? "#000" : "#000",
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: theme.isDark ? 0.3 : 0.1,
@@ -85,32 +78,67 @@ function TabNavigator() {
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ title: "Home" }}
+        options={{ 
+          title: "Home",
+          tabBarLabel: ({ focused, color }) => (
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Home</Text>
+              <Text style={{ fontSize: 9, opacity: 0.8, color }}>ホーム</Text>
+            </View>
+          )
+        }}
       />
       <Tab.Screen
         name="Library"
         component={LibraryScreen}
-        options={{ title: "Library" }}
-      />
-      <Tab.Screen
-        name="Grammar"
-        component={GrammarScreen}
-        options={{ title: "Grammar" }}
+        options={{ 
+          title: "Library",
+          tabBarLabel: ({ focused, color }) => (
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Library</Text>
+              <Text style={{ fontSize: 9, opacity: 0.8, color }}>ライブラリ</Text>
+            </View>
+          )
+        }}
       />
       <Tab.Screen
         name="Practice"
         component={PracticeScreen}
-        options={{ title: "Practice" }}
+        options={{ 
+          title: "Practice",
+          tabBarLabel: ({ focused, color }) => (
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Practice</Text>
+              <Text style={{ fontSize: 9, opacity: 0.8, color }}>練習</Text>
+            </View>
+          )
+        }}
       />
       <Tab.Screen
         name="Japanese"
         component={AlphabetScreen}
-        options={{ title: "Japanese" }}
+        options={{ 
+          title: "Japanese",
+          tabBarLabel: ({ focused, color }) => (
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Japanese</Text>
+              <Text style={{ fontSize: 9, opacity: 0.8, color }}>日本語</Text>
+            </View>
+          )
+        }}
       />
       <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: "Profile" }}
+        name="Settings"
+        component={SettingsScreen}
+        options={{ 
+          title: "Settings",
+          tabBarLabel: ({ focused, color }) => (
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Settings</Text>
+              <Text style={{ fontSize: 9, opacity: 0.8, color }}>設定</Text>
+            </View>
+          )
+        }}
       />
     </Tab.Navigator>
   );
@@ -120,19 +148,24 @@ export default function AppNavigator() {
   const { theme } = useTheme();
   const { state } = useApp();
 
-  // Show loading screen while app is initializing
-  if (state.isLoading) {
+  // Show loading screen while app is initializing or not initialized
+  if (state.isLoading || !state.isInitialized) {
     return <LoadingScreen />;
   }
 
-  // Check if there's an explicit error state
-  if (state.error) {
+  // Check if there's a critical error that prevents normal operation
+  if (state.error && (
+    state.error.type === 'storage_init' || 
+    state.error.type === 'data_load' ||
+    !state.error.canRetry ||
+    state.retryAttempts >= 3
+  )) {
     return (
       <NavigationContainer>
         <Stack.Navigator>
           <Stack.Screen
             name="Error"
-            component={ErrorSceen}
+            component={ErrorScreen}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>
@@ -140,25 +173,7 @@ export default function AppNavigator() {
     );
   }
 
-  // Handle case where user data is not available (but not an error)
-  // This could be a first-time user or authentication issue
-  if (!state.user) {
-    return (
-      <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen
-            name="Onboarding"
-            component={OnboardingScreen}
-            options={{ headerShown: false }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    );
-  }
-
-  // Safely determine initial route with fallback
-  const isFirstTimeUser = state.user?.preferences?.firstTimeUser ?? true;
-  const initialRoute = isFirstTimeUser ? "Onboarding" : "Main";
+  const initialRoute = "Main"
 
   return (
     <NavigationContainer>
@@ -182,11 +197,6 @@ export default function AppNavigator() {
         }}
       >
         <Stack.Screen
-          name="Onboarding"
-          component={OnboardingScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
           name="Main"
           component={TabNavigator}
           options={{ headerShown: false }}
@@ -208,30 +218,6 @@ export default function AppNavigator() {
           }}
         />
 
-      <Stack.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          title: "Settings",
-          headerShown: false,
-        }}
-      />
-        <Stack.Screen
-          name="Achievements"
-          component={AchievementsScreen}
-          options={{
-            title: "Achievements",
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="Statistics"
-          component={StatisticsScreen}
-          options={{
-            title: "Statistics",
-            headerShown: false,
-          }}
-        />
         <Stack.Screen
           name="AboutApp"
           component={AboutApp}
@@ -245,24 +231,6 @@ export default function AppNavigator() {
           component={LibraryFiltersScreen}
           options={{
             title: "Library Filters",
-            headerShown: false,
-          }}
-        />
-
-        <Stack.Screen
-          name="LessonDetails"
-          component={LessonDetailsScreen}
-          options={{
-            title: "Lesson Details",
-            headerShown: false,
-          }}
-        />
-
-        <Stack.Screen
-          name="LessonPlayer"
-          component={LessonDetailsScreen}
-          options={{
-            title: "Lesson Player",
             headerShown: false,
           }}
         />

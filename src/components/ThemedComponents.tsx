@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle, TextStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 
@@ -231,6 +231,42 @@ export const ThemedButton: React.FC<ThemedButtonProps> = ({
         {title}
       </Text>
     </TouchableOpacity>
+  );
+};
+
+interface BilingualTextProps {
+  text: string;
+  jpText: string;
+  style?: StyleProp<TextStyle>;
+  jpStyle?: StyleProp<TextStyle>;
+  textAlign?: 'left' | 'center' | 'right';
+}
+
+export const BilingualText: React.FC<BilingualTextProps> = ({
+  text,
+  jpText,
+  style,
+  jpStyle,
+  textAlign = 'left',
+}) => {
+  const { theme } = useTheme();
+
+  return (
+    <View style={{ alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start' }}>
+      <Text style={[{ color: theme.colors.text, textAlign }, style]}>{text}</Text>
+      <Text style={[
+        { 
+          color: theme.colors.textSecondary, 
+          fontSize: 12, 
+          marginTop: 2, 
+          opacity: 0.8,
+          textAlign 
+        }, 
+        jpStyle
+      ]}>
+        {jpText}
+      </Text>
+    </View>
   );
 };
 
