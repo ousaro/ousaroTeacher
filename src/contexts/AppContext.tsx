@@ -7,10 +7,10 @@ import React, {
 } from "react";
 import { 
   Word, 
-  User, 
-  UserPreferences
+  User
 } from "../types";
 import storageService  from "../services/storageService";
+import initializationService from "../services/initializationService";
 import PerformanceMonitor from "../utils/performanceMonitor";
 import DatabaseOptimizer from "../utils/databaseOptimizer";
 
@@ -44,7 +44,7 @@ type AppAction =
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: AppError | null }
   | { type: "SET_USER"; payload: User | null }
-  | { type: "UPDATE_USER_PREFERENCES"; payload: Partial<UserPreferences> }
+  | { type: "UPDATE_USER_PREFERENCES"; payload: Partial<Pick<User, 'theme' | 'primaryColor' | 'practiceMode'>> }
   | { type: "SET_WORDS"; payload: Word[] }
   | { type: "ADD_WORD"; payload: Word }
   | { type: "UPDATE_WORD"; payload: { id: string; updates: Partial<Word> } }
@@ -88,10 +88,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         user: state.user
           ? {
               ...state.user,
-              preferences: {
-                ...state.user.preferences,
-                ...action.payload,
-              },
+              ...action.payload,
             }
           : state.user,
       };
@@ -141,7 +138,7 @@ interface AppContextType {
     updateWord: (id: string, updates: Partial<Word>) => Promise<void>;
     deleteWord: (id: string) => Promise<void>;
     createDefaultUser: () => Promise<void>;
-    updateUserPreferences: (preferences: Partial<UserPreferences>) => Promise<void>;
+    updateUserPreferences: (preferences: Partial<Pick<User, 'theme' | 'primaryColor' | 'practiceMode'>>) => Promise<void>;
     reinitializeStorage: () => Promise<void>;
     clearError: () => void;
     retryLastAction: () => Promise<void>;
@@ -162,8 +159,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "SET_LOADING", payload: true });
       dispatch({ type: "SET_ERROR", payload: null });
 
-      // Initialize storage service first
-      await storageService.initialize();
+      // Initialize app once (this will initialize storage/database)
+      await initializationService.initializeApp();
       dispatch({ type: "SET_INITIALIZED", payload: true });
 
       // Load core data (user, words)
@@ -193,9 +190,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       let canRetry = currentAttempt < maxRetries;
       
       if (error instanceof Error) {
-        if (error.message.includes('Storage initialization failed')) {
+        if (error.message.includes('initialization failed')) {
           errorType = ErrorType.STORAGE_INIT;
-          errorMessage = "Database initialization failed";
+          errorMessage = "App initialization failed";
         }
         
         dispatch({ 
@@ -269,7 +266,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateUserPreferences = async (preferences: Partial<UserPreferences>) => {
+  const updateUserPreferences = async (preferences: Partial<Pick<User, 'theme' | 'primaryColor' | 'practiceMode'>>) => {
     if (state.user) {
       try {
         await storageService.updateUserPreferences(preferences);
@@ -295,16 +292,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         name: "Ousaro",
         nativeLanguage: "English",
         learningLanguages: ["Japanese"],
-        preferences: {
-          theme: "dark",
-          primaryColor: "#0ea5e9",
-          notifications: true,
-          reminderTime: "19:00",
-          practiceMode: "vocabulary",
-          autoPlayAudio: true,
-          showTranslations: true,
-          firstTimeUser: false,
-        },
+        theme: "dark",
+        primaryColor: "#0ea5e9",
+        practiceMode: "vocabulary"
       };
 
       await storageService.saveUser(defaultUser);
@@ -316,12 +306,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const reinitializeStorage = async () => {
     try {
-      console.log("Reinitializing storage service...");
-      await storageService.resetStorageService();
+      dispatch({ type: "SET_LOADING", payload: true });
+      dispatch({ type: "SET_ERROR", payload: null });
+      
+      // Reset initialization service
+      initializationService.reset();
+      
+      // Reinitialize everything
+      await initializationService.initializeApp();
       dispatch({ type: "SET_INITIALIZED", payload: true });
-      console.log("Storage service reinitialized successfully");
+      
+      // Reload data
+      await loadInitialData();
     } catch (error) {
-      console.error("Error reinitializing storage service:", error);
+      console.error("Error reinitializing storage:", error);
       dispatch({ 
         type: "SET_ERROR", 
         payload: createAppError(
@@ -332,6 +330,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         )
       });
       throw error;
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
     }
   };
 

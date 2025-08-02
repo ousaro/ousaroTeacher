@@ -3,7 +3,6 @@ import SQLiteStorageService from './sqliteStorageService';
 import {
   Word,
   User,
-  UserPreferences,
 } from "../types";
 
 // Unified storage service using only SQLite
@@ -26,12 +25,10 @@ class StorageService {
   private async ensureInitialized(): Promise<void> {
     if (!this.isInitialized) {
       try {
-        console.log('Initializing SQLite storage service...');
         await this.storageService.initialize();
         this.isInitialized = true;
-        console.log('SQLite storage service initialized successfully');
       } catch (error) {
-        console.error('Failed to initialize SQLite storage service:', error);
+        console.error('Failed to initialize storage service:', error);
         // Reset state to allow retry
         this.isInitialized = false;
         throw new Error(`Storage initialization failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -40,12 +37,6 @@ class StorageService {
   }
 
   async initialize(): Promise<void> {
-    await this.ensureInitialized();
-  }
-
-  // Reset the storage service (for error recovery)
-  async resetStorageService(): Promise<void> {
-    this.isInitialized = false;
     await this.ensureInitialized();
   }
 
@@ -64,10 +55,9 @@ class StorageService {
     limit: number;
     offset: number;
     searchQuery?: string;
-    category?: 'all' | 'learning' | 'mastered' | 'new';
     onlyFavorites?: boolean;
     dateRange?: 'all' | 'week' | 'month' | '3months' | '6months';
-    sortBy?: 'newest' | 'alphabetical' | 'progress';
+    sortBy?: 'newest' | 'alphabetical';
     direction?: 'asc' | 'desc';
   }): Promise<{ words: Word[]; totalCount: number; hasMore: boolean }> {
     await this.ensureInitialized();
@@ -101,7 +91,7 @@ class StorageService {
     return this.storageService.getUser();
   }
 
-  async updateUserPreferences(updates: Partial<UserPreferences>): Promise<void> {
+  async updateUserPreferences(updates: Partial<Pick<User, 'theme' | 'primaryColor' | 'practiceMode'>>): Promise<void> {
     await this.ensureInitialized();
     return this.storageService.updateUserPreferences(updates);
   }

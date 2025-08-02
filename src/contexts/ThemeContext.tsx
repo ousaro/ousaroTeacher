@@ -111,10 +111,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
   const loadTheme = async () => {
     try {
-      await StorageService.initialize();
       const user = await StorageService.getUser();
-      if (user?.preferences?.theme) {
-        setIsDark(user.preferences.theme === "dark");
+      if (user?.theme) {
+        setIsDark(user.theme === "dark");
       }
     } catch (error) {
       console.error("Error loading theme:", error);

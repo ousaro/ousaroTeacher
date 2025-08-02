@@ -110,12 +110,8 @@ export default function AddWordScreen({ route, navigation }: Props) {
             ? formData.tags.split(",").map((tag) => tag.trim())
             : [],
           pronunciation: formData.pronunciation.trim(),
-          rarity: 0,
           dateAdded: new Date().toISOString(),
-          reviewCount: 0,
-          correctCount: 0,
           isFavorite: false,
-          isMarkedDifficult: false,
         };
 
         await actions.addWord(newWord);

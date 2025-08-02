@@ -197,20 +197,6 @@ export default function WordDetailsScreen({ route, navigation }: Props) {
                   </View>
                 </View>
               )}
-              {word.isMarkedDifficult && (
-                <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: theme.colors.warning },
-                  ]}
-                >
-                  <Ionicons name="alert-circle" size={12} color="white" />
-                  <View style={styles.badgeTextContainer}>
-                    <Text style={styles.badgeText}>Difficult</Text>
-                    <Text style={styles.jpBadgeText}>難しい</Text>
-                  </View>
-                </View>
-              )}
             </View>
           </View>
         </ThemedCard>

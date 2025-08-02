@@ -88,9 +88,6 @@ export const generatePracticeWords = (
 const calculateWordWeight = (word: Word): number => {
   let weight = 100; // Base weight
 
-  // Less reviewed = higher weight
-  weight += Math.max(0, 20 - word.reviewCount) * 2; //20 is the max review count
-
   // Recently added = higher weight
   const daysSinceAdded =
     (Date.now() - new Date(word.dateAdded).getTime()) / (1000 * 60 * 60 * 24);
@@ -98,9 +95,9 @@ const calculateWordWeight = (word: Word): number => {
     weight += (7 - daysSinceAdded) * 10;
   }
 
-  // Marked as difficult = higher weight
-  if (word.isMarkedDifficult) {
-    weight += 30;
+  // Favorites get slightly higher weight
+  if (word.isFavorite) {
+    weight += 15;
   }
 
   return weight;

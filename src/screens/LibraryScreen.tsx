@@ -101,10 +101,9 @@ export default function LibraryScreen({ navigation }: Props) {
         limit: ITEMS_PER_PAGE,
         offset,
         searchQuery: debouncedSearchQuery,
-        category: filters.category as 'all' | 'learning' | 'mastered' | 'new',
         onlyFavorites: filters.onlyFavorites,
         dateRange: filters.dateRange as 'all' | 'week' | 'month' | '3months' | '6months',
-        sortBy: filters.sortBy as 'newest' | 'alphabetical' | 'progress',
+        sortBy: filters.sortBy as 'newest' | 'alphabetical',
         direction: filters.direction as 'asc' | 'desc',
       });
 
@@ -196,21 +195,11 @@ export default function LibraryScreen({ navigation }: Props) {
     setPaginatedWords([]);
   }, []);
 
-  // Remove the old useEffect since loadWords already handles filter changes
-
-  const getProgressColor = (progress: number) => {
-    if (progress >= 80) return "#10b981"; // Green - mastered
-    if (progress >= 50) return "#f59e0b"; // Orange - progressing
-    if (progress > 0) return "#3b82f6"; // Blue - started
-    return "#6b7280"; // Gray - not started
-  };
 
   const getSortDisplayText = () => {
     const sortOptions = {
       newest: "Recently Added",
-      alphabetical: "Alphabetical", 
-      progress: "Progress",
-      mastered: "Mastered First",
+      alphabetical: "Alphabetical",
     };
     return sortOptions[filters.sortBy];
   };
@@ -219,8 +208,6 @@ export default function LibraryScreen({ navigation }: Props) {
     const sortOptions = {
       newest: "新しく追加",
       alphabetical: "アルファベット順", 
-      progress: "進捗",
-      mastered: "習得済み優先",
     };
     return sortOptions[filters.sortBy];
   };

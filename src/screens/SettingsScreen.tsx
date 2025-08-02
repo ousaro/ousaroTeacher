@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -7,16 +7,13 @@ import {
   StatusBar,
   StyleSheet,
   Switch,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "../contexts/AppContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { handleExportData, handleImportData } from "../utils";
-import { useAlert } from "../contexts/AlertContext";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Animatable from "react-native-animatable";
 
 interface Props {
   navigation: any;
@@ -33,9 +30,8 @@ interface SettingsItem {
 }
 
 export default function SettingsScreen({ navigation }: Props) {
-  const { state, actions } = useApp();
+  const { actions } = useApp();
   const { theme, toggleTheme, isDark } = useTheme();
-  const { words } = state;
 
   const settingsSections: Array<{
     title: string;

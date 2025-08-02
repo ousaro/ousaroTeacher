@@ -37,7 +37,7 @@ interface Props {
 
 export default function AlphabetScreen({ navigation }: Props) {
   const { theme } = useTheme();
-  const { state, actions } = useApp();
+  const { state } = useApp();
   const [selectedItem, setSelectedItem] = useState<AlphabetLetter | NumberItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"hiragana" | "katakana" | "numbers">("hiragana");

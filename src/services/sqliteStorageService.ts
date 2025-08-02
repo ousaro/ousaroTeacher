@@ -1,7 +1,6 @@
 import {
   Word,
   User,
-  UserPreferences,
 } from "../types";
 import PerformanceMonitor from "../utils/performanceMonitor";
 import SQLiteDatabase from "../database/sqlite";
@@ -11,6 +10,7 @@ class SQLiteStorageService {
   private cache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly WORDS_CACHE_TTL = 2 * 60 * 1000; // 2 minutes for words (shorter due to frequent updates)
+  private isInitialized = false;
   
   static getInstance(): SQLiteStorageService {
     if (!SQLiteStorageService.instance) {
@@ -20,12 +20,16 @@ class SQLiteStorageService {
   }
 
   async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
     try {
-      console.log('Initializing SQLite storage service...');
       await SQLiteDatabase.initialize();
-      console.log('SQLite database initialized successfully');
+      this.isInitialized = true;
+      console.log('Storage service initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize SQLite database:', error);
+      console.error('Failed to initialize storage service:', error);
       throw new Error(`SQLite storage service initialization failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -66,10 +70,9 @@ class SQLiteStorageService {
     limit: number;
     offset: number;
     searchQuery?: string;
-    category?: 'all' | 'learning' | 'mastered' | 'new';
     onlyFavorites?: boolean;
     dateRange?: 'all' | 'week' | 'month' | '3months' | '6months';
-    sortBy?: 'newest' | 'alphabetical' | 'progress';
+    sortBy?: 'newest' | 'alphabetical';
     direction?: 'asc' | 'desc';
   }): Promise<{ words: Word[]; totalCount: number; hasMore: boolean }> {
     return PerformanceMonitor.measureAsync('getWordsPaginated', async () => {
@@ -87,13 +90,8 @@ class SQLiteStorageService {
         notes: row.notes || '',
         tags: JSON.parse(row.tags || '[]'),
         pronunciation: row.pronunciation,
-        rarity: row.rarity,
         dateAdded: row.date_added,
-        lastReviewed: row.last_reviewed,
-        reviewCount: row.review_count,
-        correctCount: row.correct_count,
         isFavorite: Boolean(row.is_favorite),
-        isMarkedDifficult: Boolean(row.is_marked_difficult),
       }));
 
       const response = {
@@ -136,13 +134,8 @@ class SQLiteStorageService {
         notes: row.notes || '',
         tags: JSON.parse(row.tags || '[]'),
         pronunciation: row.pronunciation,
-        rarity: row.rarity,
         dateAdded: row.date_added,
-        lastReviewed: row.last_reviewed,
-        reviewCount: row.review_count,
-        correctCount: row.correct_count,
         isFavorite: Boolean(row.is_favorite),
-        isMarkedDifficult: Boolean(row.is_marked_difficult),
       }));
 
       this.setCachedData('words_all', words, this.WORDS_CACHE_TTL);
@@ -157,15 +150,12 @@ class SQLiteStorageService {
       await db.runAsync(`
         INSERT OR REPLACE INTO words (
           id, text, definition, translation, notes, tags, pronunciation,
-          rarity, date_added, last_reviewed, review_count,
-          correct_count, is_favorite, is_marked_difficult, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          date_added, is_favorite, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, [
         word.id, word.text, word.definition, word.translation, word.notes,
         JSON.stringify(word.tags), word.pronunciation || null,
-        word.rarity, word.dateAdded, word.lastReviewed || null,
-        word.reviewCount, word.correctCount, word.isFavorite ? 1 : 0,
-        word.isMarkedDifficult ? 1 : 0
+        word.dateAdded, word.isFavorite ? 1 : 0
       ]);
 
       this.invalidateCache('words');
@@ -202,29 +192,9 @@ class SQLiteStorageService {
       setParts.push('pronunciation = ?');
       values.push(updates.pronunciation);
     }
-    if (updates.rarity !== undefined) {
-      setParts.push('rarity = ?');
-      values.push(updates.rarity);
-    }
-    if (updates.lastReviewed !== undefined) {
-      setParts.push('last_reviewed = ?');
-      values.push(updates.lastReviewed);
-    }
-    if (updates.reviewCount !== undefined) {
-      setParts.push('review_count = ?');
-      values.push(updates.reviewCount);
-    }
-    if (updates.correctCount !== undefined) {
-      setParts.push('correct_count = ?');
-      values.push(updates.correctCount);
-    }
     if (updates.isFavorite !== undefined) {
       setParts.push('is_favorite = ?');
       values.push(updates.isFavorite ? 1 : 0);
-    }
-    if (updates.isMarkedDifficult !== undefined) {
-      setParts.push('is_marked_difficult = ?');
-      values.push(updates.isMarkedDifficult ? 1 : 0);
     }
 
     if (setParts.length === 0) return;
@@ -249,28 +219,22 @@ class SQLiteStorageService {
   // User management
   async saveUser(user: User): Promise<void> {
     try {
-      console.log('Attempting to save user:', user.id);
       const db = await SQLiteDatabase.getDatabase();
-      console.log('Database connection obtained successfully');
       
       await db.runAsync(`
         INSERT OR REPLACE INTO users (
           id, name, native_language, learning_languages, theme, primary_color,
-          notifications, reminder_time, practice_mode, auto_play_audio,
-          show_translations, first_time_user, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+          practice_mode, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, [
         user.id, user.name, user.nativeLanguage, JSON.stringify(user.learningLanguages),
-        user.preferences.theme, user.preferences.primaryColor,
-        user.preferences.notifications ? 1 : 0, user.preferences.reminderTime,
-        user.preferences.practiceMode, user.preferences.autoPlayAudio ? 1 : 0,
-        user.preferences.showTranslations ? 1 : 0, user.preferences.firstTimeUser ? 1 : 0
+        user.theme, user.primaryColor,
+        user.practiceMode,
       ]);
 
-      console.log('User saved successfully');
       this.invalidateCache('user');
     } catch (error) {
-      console.error('Error in saveUser:', error);
+      console.error('Error saving user:', error);
       throw error;
     }
   }
@@ -289,40 +253,30 @@ class SQLiteStorageService {
       name: row.name,
       nativeLanguage: row.native_language,
       learningLanguages: JSON.parse(row.learning_languages || '[]'),
-      preferences: {
-        theme: row.theme,
-        primaryColor: row.primary_color,
-        notifications: Boolean(row.notifications),
-        reminderTime: row.reminder_time,
-        practiceMode: row.practice_mode,
-        autoPlayAudio: Boolean(row.auto_play_audio),
-        showTranslations: Boolean(row.show_translations),
-        firstTimeUser: Boolean(row.first_time_user),
-      },
+      theme: row.theme,
+      primaryColor: row.primary_color,
+      practiceMode: row.practice_mode,
     };
 
     this.setCachedData('user', user);
     return user;
   }
 
-  async updateUserPreferences(updates: Partial<UserPreferences>): Promise<void> {
+  async updateUserPreferences(updates: Partial<Pick<User, 'theme' | 'primaryColor' | 'practiceMode'>>): Promise<void> {
     try {
-      console.log('Attempting to update user preferences:', updates);
       const user = await this.getUser();
       if (!user) {
-        console.log('No user found, cannot update preferences');
         return;
       }
 
       const updatedUser: User = {
         ...user,
-        preferences: { ...user.preferences, ...updates }
+        ...updates
       };
 
       await this.saveUser(updatedUser);
-      console.log('User preferences updated successfully');
     } catch (error) {
-      console.error('Error in updateUserPreferences:', error);
+      console.error('Error updating user preferences:', error);
       throw error;
     }
   }
