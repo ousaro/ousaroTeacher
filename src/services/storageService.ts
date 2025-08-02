@@ -60,6 +60,20 @@ class StorageService {
     return this.storageService.getWords();
   }
 
+  async getWordsPaginated(options: {
+    limit: number;
+    offset: number;
+    searchQuery?: string;
+    category?: 'all' | 'learning' | 'mastered' | 'new';
+    onlyFavorites?: boolean;
+    dateRange?: 'all' | 'week' | 'month' | '3months' | '6months';
+    sortBy?: 'newest' | 'alphabetical' | 'progress';
+    direction?: 'asc' | 'desc';
+  }): Promise<{ words: Word[]; totalCount: number; hasMore: boolean }> {
+    await this.ensureInitialized();
+    return this.storageService.getWordsPaginated(options);
+  }
+
   async addWord(word: Word): Promise<void> {
     await this.ensureInitialized();
     return this.storageService.addWord(word);
@@ -117,6 +131,21 @@ class StorageService {
   async importData(jsonData: string): Promise<void> {
     await this.ensureInitialized();
     return this.storageService.importData(jsonData);
+  }
+
+  // Database optimization methods
+  async optimizeDatabase(): Promise<void> {
+    await this.ensureInitialized();
+    return this.storageService.optimizeDatabase();
+  }
+
+  async getDatabaseStats(): Promise<{
+    wordCount: number;
+    dbSize: number;
+    indexCount: number;
+  }> {
+    await this.ensureInitialized();
+    return this.storageService.getDatabaseStats();
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { ThemedButton } from "../components/ThemedComponents";
 import { Word } from "../types";
 import { FilterState } from "./LibraryFilterSceen";
 import { useAlert } from "../contexts/AlertContext";
+import StorageService from "../services/storageService";
 
 interface Props {
   navigation: any;
@@ -32,6 +33,7 @@ export default function LibraryScreen({ navigation }: Props) {
   const alert = useAlert();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     category: "all",
@@ -40,6 +42,23 @@ export default function LibraryScreen({ navigation }: Props) {
     onlyFavorites: false,
     direction: 'asc'
   });
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [paginatedWords, setPaginatedWords] = useState<Word[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMoreData, setHasMoreData] = useState(false);
+  const ITEMS_PER_PAGE = 20;
+
+  // Debounce search query for better performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Count active filters (excluding default values)
   const activeFiltersCount = useMemo(() => {
@@ -57,7 +76,7 @@ export default function LibraryScreen({ navigation }: Props) {
     });
   };
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setFilters({
       category: "all",
       sortBy: "newest",
@@ -66,82 +85,64 @@ export default function LibraryScreen({ navigation }: Props) {
       direction: 'asc'
     });
     setSearchQuery("");
-  };
+    setDebouncedSearchQuery("");
+  }, []);
 
-  const filteredAndSortedWords = useMemo(() => {
-    let filtered = words;
+  const clearSearch = useCallback(() => {
+    setSearchQuery("");
+    setDebouncedSearchQuery("");
+  }, []);
 
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (word) =>
-          word.text.toLowerCase().includes(query) ||
-          word.translation.toLowerCase().includes(query)
-      );
-    }
+  // Load paginated words from database
+  const loadWords = useCallback(async (reset: boolean = false) => {
+    try {
+      const offset = reset ? 0 : currentPage * ITEMS_PER_PAGE;
+      const result = await StorageService.getWordsPaginated({
+        limit: ITEMS_PER_PAGE,
+        offset,
+        searchQuery: debouncedSearchQuery,
+        category: filters.category as 'all' | 'learning' | 'mastered' | 'new',
+        onlyFavorites: filters.onlyFavorites,
+        dateRange: filters.dateRange as 'all' | 'week' | 'month' | '3months' | '6months',
+        sortBy: filters.sortBy as 'newest' | 'alphabetical' | 'progress',
+        direction: filters.direction as 'asc' | 'desc',
+      });
 
-    // Category filter
-    switch (filters.category) {
-      case "learning":
-        filtered = filtered.filter((word) => 0 > 0 && 0 < 80);
-        break;
-      case "mastered":
-        filtered = filtered.filter((word) => 0 >= 80);
-        break;
-      case "new":
-        filtered = filtered.filter((word) => 0 === 0);
-        break;
-    }
-
-    // Date range filter
-    if (filters.dateRange !== "all") {
-      const now = new Date();
-      const cutoffDate = new Date();
-      
-      switch (filters.dateRange) {
-        case "week":
-          cutoffDate.setDate(now.getDate() - 7);
-          break;
-        case "month":
-          cutoffDate.setMonth(now.getMonth() - 1);
-          break;
-        case "3months":
-          cutoffDate.setMonth(now.getMonth() - 3);
-          break;
-        case "6months":
-          cutoffDate.setMonth(now.getMonth() - 6);
-          break;
+      if (reset) {
+        setPaginatedWords(result.words);
+        setCurrentPage(1);
+      } else {
+        setPaginatedWords(prev => [...prev, ...result.words]);
+        setCurrentPage(prev => prev + 1);
       }
-      
-      filtered = filtered.filter(
-        (word) => new Date(word.dateAdded) >= cutoffDate
-      );
+
+      setTotalCount(result.totalCount);
+      setHasMoreData(result.hasMore);
+    } catch (error) {
+      console.error('Error loading words:', error);
+      alert({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to load words. Please try again.',
+      });
     }
+  }, [currentPage, debouncedSearchQuery, filters, alert]);
 
-    // Favorites filter
-    if (filters.onlyFavorites) {
-      filtered = filtered.filter((word) => word.isFavorite);
-    }
+  // Load initial data and when filters change
+  useEffect(() => {
+    loadWords(true);
+  }, [debouncedSearchQuery, filters]);
 
-    // Sorting
-    const sortDirection = filters.direction === "asc" ? 1 : -1;
+  // Remove the old filteredAndSortedWords memo since we're using database pagination
 
-    switch (filters.sortBy) {
-      case "alphabetical":
-        filtered.sort((a, b) => a.text.localeCompare(b.text) * sortDirection);
-        break;
-      case "newest":
-      default:
-        filtered.sort(
-          (a, b) =>
-            new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime() * sortDirection,
-        );
-        break;
-    }
+  // Memoize empty state check for better performance
+  const isEmptyState = useMemo(() => {
+    return totalCount === 0;
+  }, [totalCount]);
 
-    return filtered;
-  }, [words, searchQuery, filters]);
+  const hasActiveFilters = useMemo(() => {
+    return searchQuery || activeFiltersCount > 0;
+  }, [searchQuery, activeFiltersCount]);
 
   const handleWordPress = useCallback((word: Word) => {
     navigation.navigate("WordDetails", { wordId: word.id });
@@ -154,19 +155,48 @@ export default function LibraryScreen({ navigation }: Props) {
       message: `Are you sure you want to delete "${word.text}"? This action cannot be undone.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
-      onConfirm: () => actions.deleteWord(word.id),
+      onConfirm: async () => {
+        await actions.deleteWord(word.id);
+        // Refresh the list after deletion
+        await loadWords(true);
+      },
     });
-  }, [actions]);
+  }, [actions, alert, loadWords]);
 
   const toggleFavorite = useCallback(async (word: Word) => {
     await actions.updateWord(word.id, { isFavorite: !word.isFavorite });
-  }, [actions]);
+    // Refresh the list to show updated state
+    await loadWords(true);
+  }, [actions, loadWords]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await loadWords(true); // Reset pagination on refresh
     setRefreshing(false);
+  }, [loadWords]);
+
+  const loadMoreData = useCallback(async () => {
+    if (isLoadingMore || !hasMoreData) return;
+    
+    setIsLoadingMore(true);
+    await loadWords(false); // Load next page
+    setIsLoadingMore(false);
+  }, [isLoadingMore, hasMoreData, loadWords]);
+
+  const handleEndReached = useCallback(({ distanceFromEnd }: { distanceFromEnd: number }) => {
+    // Only trigger if user is actively scrolling and close to end
+    if (distanceFromEnd < 50) {
+      loadMoreData();
+    }
+  }, [loadMoreData]);
+
+  // Reset pagination when filters change
+  const resetPagination = useCallback(() => {
+    setCurrentPage(1);
+    setPaginatedWords([]);
   }, []);
+
+  // Remove the old useEffect since loadWords already handles filter changes
 
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return "#10b981"; // Green - mastered
@@ -195,11 +225,11 @@ export default function LibraryScreen({ navigation }: Props) {
     return sortOptions[filters.sortBy];
   };
 
-  const renderWordCard = ({ item: word, index }: { item: Word; index: number }) => {
+  const renderWordCard = useCallback(({ item: word, index }: { item: Word; index: number }) => {
     return (
       <Animatable.View
         animation="fadeInUp"
-        delay={index * 30}
+        delay={Math.min(index * 30, 300)} // Cap animation delay to prevent excessive delays
         style={[
           styles.wordCard,
           { backgroundColor: theme.colors.surface },
@@ -255,7 +285,7 @@ export default function LibraryScreen({ navigation }: Props) {
         </TouchableOpacity>
       </Animatable.View>
     );
-  };
+  }, [theme.colors, handleWordPress, toggleFavorite, handleDeleteWord]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -306,7 +336,7 @@ export default function LibraryScreen({ navigation }: Props) {
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}>
+            <TouchableOpacity onPress={clearSearch} activeOpacity={0.7}>
               <Ionicons name="close" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
@@ -317,7 +347,7 @@ export default function LibraryScreen({ navigation }: Props) {
       <View style={[styles.controlsBar, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.controlsLeft}>
           <Text style={[styles.resultsText, { color: theme.colors.textSecondary }]}>
-            {filteredAndSortedWords.length} words
+            {totalCount} words
           </Text>
           
           {activeFiltersCount > 0 && (
@@ -422,30 +452,30 @@ export default function LibraryScreen({ navigation }: Props) {
       )}
 
       {/* Words List */}
-      {filteredAndSortedWords.length === 0 ? (
+      {isEmptyState ? (
         <View style={styles.emptyState}>
           <Ionicons
-            name={searchQuery || activeFiltersCount > 0 ? "search" : "library-outline"}
+            name={hasActiveFilters ? "search" : "library-outline"}
             size={48}
             color={theme.colors.textSecondary}
           />
           <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-            {searchQuery || activeFiltersCount > 0 ? "No words found" : "No words yet"}
+            {hasActiveFilters ? "No words found" : "No words yet"}
           </Text>
           <Text style={[styles.jpEmptyTitle, { color: theme.colors.textSecondary }]}>
-            {searchQuery || activeFiltersCount > 0 ? "単語が見つかりません" : "まだ単語がありません"}
+            {hasActiveFilters ? "単語が見つかりません" : "まだ単語がありません"}
           </Text>
           <Text style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}>
-            {searchQuery || activeFiltersCount > 0
+            {hasActiveFilters
               ? "Try adjusting your search or filters"
               : "Add your first word to get started"}
           </Text>
           <Text style={[styles.jpEmptyDescription, { color: theme.colors.textSecondary }]}>
-            {searchQuery || activeFiltersCount > 0
+            {hasActiveFilters
               ? "検索条件やフィルタを調整してください"
               : "最初の単語を追加して始めましょう"}
           </Text>
-          {(searchQuery || activeFiltersCount > 0) ? (
+          {hasActiveFilters ? (
             <ThemedButton
               title="Clear Filters"
               onPress={clearAllFilters}
@@ -465,7 +495,7 @@ export default function LibraryScreen({ navigation }: Props) {
         </View>
       ) : (
         <FlatList
-          data={filteredAndSortedWords}
+          data={paginatedWords}
           renderItem={renderWordCard}
           keyExtractor={(item) => item.id}
           style={styles.wordsList}
@@ -479,9 +509,42 @@ export default function LibraryScreen({ navigation }: Props) {
               tintColor={theme.colors.primary}
             />
           }
+          // Pagination props
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            isLoadingMore ? (
+              <View style={styles.loadingFooter}>
+                <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+                  Loading more...
+                </Text>
+              </View>
+            ) : hasMoreData ? (
+              <View style={styles.loadMoreContainer}>
+                <TouchableOpacity 
+                  onPress={loadMoreData}
+                  style={[styles.loadMoreButton, { borderColor: theme.colors.primary }]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.loadMoreText, { color: theme.colors.primary }]}>
+                    Load More ({totalCount - paginatedWords.length} remaining)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null
+          }
+          // Performance optimizations
           removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={2}
+          maxToRenderPerBatch={20}
+          windowSize={10}
+          initialNumToRender={15}
+          updateCellsBatchingPeriod={50}
+          // Remove getItemLayout if items have variable heights
+          // getItemLayout={(data, index) => ({
+          //   length: 120, // Approximate item height
+          //   offset: 120 * index,
+          //   index,
+          // })}
         />
       )}
     </SafeAreaView>
@@ -762,5 +825,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
     marginBottom: 24,
+  },
+  loadingFooter: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  loadMoreContainer: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  loadMoreButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

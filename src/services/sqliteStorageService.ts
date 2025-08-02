@@ -10,6 +10,8 @@ class SQLiteStorageService {
   private static instance: SQLiteStorageService;
   private cache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly WORDS_CACHE_TTL = 2 * 60 * 1000; // 2 minutes for words (shorter due to frequent updates)
+  
   static getInstance(): SQLiteStorageService {
     if (!SQLiteStorageService.instance) {
       SQLiteStorageService.instance = new SQLiteStorageService();
@@ -59,45 +61,71 @@ class SQLiteStorageService {
     }
   }
 
-  // Word management
+  // Word management with optimized pagination
+  async getWordsPaginated(options: {
+    limit: number;
+    offset: number;
+    searchQuery?: string;
+    category?: 'all' | 'learning' | 'mastered' | 'new';
+    onlyFavorites?: boolean;
+    dateRange?: 'all' | 'week' | 'month' | '3months' | '6months';
+    sortBy?: 'newest' | 'alphabetical' | 'progress';
+    direction?: 'asc' | 'desc';
+  }): Promise<{ words: Word[]; totalCount: number; hasMore: boolean }> {
+    return PerformanceMonitor.measureAsync('getWordsPaginated', async () => {
+      const cacheKey = `words_paginated_${JSON.stringify(options)}`;
+      const cached = this.getCachedData<{ words: Word[]; totalCount: number; hasMore: boolean }>(cacheKey);
+      if (cached) return cached;
+
+      const result = await SQLiteDatabase.getWordsPaginated(options);
+      
+      const words: Word[] = result.words.map((row: any) => ({
+        id: row.id,
+        text: row.text,
+        definition: row.definition,
+        translation: row.translation,
+        notes: row.notes || '',
+        tags: JSON.parse(row.tags || '[]'),
+        pronunciation: row.pronunciation,
+        rarity: row.rarity,
+        dateAdded: row.date_added,
+        lastReviewed: row.last_reviewed,
+        reviewCount: row.review_count,
+        correctCount: row.correct_count,
+        isFavorite: Boolean(row.is_favorite),
+        isMarkedDifficult: Boolean(row.is_marked_difficult),
+      }));
+
+      const response = {
+        words,
+        totalCount: result.totalCount,
+        hasMore: result.hasMore
+      };
+
+      // Cache with shorter TTL for paginated results
+      this.setCachedData(cacheKey, response, this.WORDS_CACHE_TTL);
+      return response;
+    });
+  }
+
   async saveWords(words: Word[]): Promise<void> {
     return PerformanceMonitor.measureAsync('saveWords', async () => {
-      const db = await SQLiteDatabase.getDatabase();
-      
-      await SQLiteDatabase.executeWithTransaction(async () => {
-        // Clear existing words
-        await db.execAsync('DELETE FROM words;');
-        
-        // Insert all words
-        for (const word of words) {
-          await db.runAsync(`
-            INSERT INTO words (
-              id, text, definition, translation, notes, tags, pronunciation,
-              rarity, date_added, last_reviewed, review_count,
-              correct_count, is_favorite, is_marked_difficult, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-          `, [
-            word.id, word.text, word.definition, word.translation, word.notes,
-            JSON.stringify(word.tags), word.pronunciation || null,
-            word.rarity, word.dateAdded, word.lastReviewed || null,
-            word.reviewCount, word.correctCount, word.isFavorite ? 1 : 0,
-            word.isMarkedDifficult ? 1 : 0
-          ]);
-        }
-      });
-      
+      // Use batch insert for better performance
+      await SQLiteDatabase.batchInsertWords(words);
       this.invalidateCache('words');
     });
   }
 
   async getWords(): Promise<Word[]> {
     return PerformanceMonitor.measureAsync('getWords', async () => {
-      const cached = this.getCachedData<Word[]>('words');
+      const cached = this.getCachedData<Word[]>('words_all');
       if (cached) return cached;
 
       const db = await SQLiteDatabase.getDatabase();
       const rows = await db.getAllAsync(`
-        SELECT * FROM words ORDER BY date_added DESC
+        SELECT * FROM words 
+        ORDER BY date_added DESC
+        LIMIT 1000
       `);
 
       const words: Word[] = rows.map((row: any) => ({
@@ -117,29 +145,31 @@ class SQLiteStorageService {
         isMarkedDifficult: Boolean(row.is_marked_difficult),
       }));
 
-      this.setCachedData('words', words);
+      this.setCachedData('words_all', words, this.WORDS_CACHE_TTL);
       return words;
     });
   }
 
   async addWord(word: Word): Promise<void> {
-    const db = await SQLiteDatabase.getDatabase();
-    
-    await db.runAsync(`
-      INSERT OR REPLACE INTO words (
-        id, text, definition, translation, notes, tags, pronunciation,
-        rarity, date_added, last_reviewed, review_count,
-        correct_count, is_favorite, is_marked_difficult, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `, [
-      word.id, word.text, word.definition, word.translation, word.notes,
-      JSON.stringify(word.tags), word.pronunciation || null,
-      word.rarity, word.dateAdded, word.lastReviewed || null,
-      word.reviewCount, word.correctCount, word.isFavorite ? 1 : 0,
-      word.isMarkedDifficult ? 1 : 0
-    ]);
+    return PerformanceMonitor.measureAsync('addWord', async () => {
+      const db = await SQLiteDatabase.getDatabase();
+      
+      await db.runAsync(`
+        INSERT OR REPLACE INTO words (
+          id, text, definition, translation, notes, tags, pronunciation,
+          rarity, date_added, last_reviewed, review_count,
+          correct_count, is_favorite, is_marked_difficult, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `, [
+        word.id, word.text, word.definition, word.translation, word.notes,
+        JSON.stringify(word.tags), word.pronunciation || null,
+        word.rarity, word.dateAdded, word.lastReviewed || null,
+        word.reviewCount, word.correctCount, word.isFavorite ? 1 : 0,
+        word.isMarkedDifficult ? 1 : 0
+      ]);
 
-    this.invalidateCache('words');
+      this.invalidateCache('words');
+    });
   }
 
   async updateWord(wordId: string, updates: Partial<Word>): Promise<void> {
@@ -325,31 +355,54 @@ class SQLiteStorageService {
   async importData(jsonData: string): Promise<void> {
     try {
       const data = JSON.parse(jsonData);
-
-      await SQLiteDatabase.executeWithTransaction(async () => {
-        if (data.words) await this.saveWords(data.words);
-        if (data.user) await this.saveUser(data.user);
-      });
-
+      
+      if (data.words && Array.isArray(data.words)) {
+        await this.saveWords(data.words);
+      }
+      
+      if (data.user) {
+        await this.saveUser(data.user);
+      }
+      
       this.invalidateCache();
     } catch (error) {
-      console.error("Error importing data:", error);
-      throw new Error("Failed to import data. Please check the file format.");
+      console.error('Error importing data:', error);
+      throw new Error('Failed to import data: Invalid format');
     }
   }
 
-  public clearExpiredCache(): void {
+  // Database optimization methods
+  async optimizeDatabase(): Promise<void> {
+    return PerformanceMonitor.measureAsync('optimizeDatabase', async () => {
+      await SQLiteDatabase.optimizeDatabase();
+      this.invalidateCache(); // Clear cache after optimization
+    });
+  }
+
+  async getDatabaseStats(): Promise<{
+    wordCount: number;
+    dbSize: number;
+    indexCount: number;
+  }> {
+    return PerformanceMonitor.measureAsync('getDatabaseStats', async () => {
+      return await SQLiteDatabase.getDatabaseStats();
+    });
+  }
+
+  // Performance monitoring
+  async clearExpiredCache(): Promise<void> {
     const now = Date.now();
-    for (const [key, cached] of this.cache.entries()) {
-      if (now - cached.timestamp >= cached.ttl) {
+    for (const [key, value] of this.cache.entries()) {
+      if (now - value.timestamp >= value.ttl) {
         this.cache.delete(key);
       }
     }
   }
 
-  // Force immediate write (for compatibility)
   async forceWrite(): Promise<void> {
-    // SQLite writes are immediate, so this is a no-op
+    // SQLite auto-commits, but we can force a checkpoint
+    const db = await SQLiteDatabase.getDatabase();
+    await db.execAsync('PRAGMA wal_checkpoint(TRUNCATE);');
   }
 }
 

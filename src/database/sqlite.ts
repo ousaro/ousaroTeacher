@@ -48,6 +48,16 @@ export class SQLiteDatabase {
           throw new Error('Failed to open database');
         }
         
+        // Configure SQLite for better performance
+        await this.db.execAsync(`
+          PRAGMA journal_mode = WAL;
+          PRAGMA synchronous = NORMAL;
+          PRAGMA cache_size = -20000;
+          PRAGMA temp_store = MEMORY;
+          PRAGMA mmap_size = 268435456;
+          PRAGMA optimize;
+        `);
+        
         // Test the database connection
         await this.db.getFirstAsync('SELECT 1');
         console.log('Database connection test successful');
@@ -172,9 +182,48 @@ export class SQLiteDatabase {
       );
 
       -- Indexes for better performance
-      CREATE INDEX IF NOT EXISTS idx_words_text ON words(text);
+      CREATE INDEX IF NOT EXISTS idx_words_text ON words(text COLLATE NOCASE);
+      CREATE INDEX IF NOT EXISTS idx_words_translation ON words(translation COLLATE NOCASE);
+      CREATE INDEX IF NOT EXISTS idx_words_definition ON words(definition COLLATE NOCASE);
       CREATE INDEX IF NOT EXISTS idx_words_tags ON words(tags);
-      CREATE INDEX IF NOT EXISTS idx_words_date_added ON words(date_added);
+      CREATE INDEX IF NOT EXISTS idx_words_date_added ON words(date_added DESC);
+      CREATE INDEX IF NOT EXISTS idx_words_last_reviewed ON words(last_reviewed DESC);
+      CREATE INDEX IF NOT EXISTS idx_words_is_favorite ON words(is_favorite);
+      CREATE INDEX IF NOT EXISTS idx_words_is_marked_difficult ON words(is_marked_difficult);
+      CREATE INDEX IF NOT EXISTS idx_words_review_count ON words(review_count DESC);
+      CREATE INDEX IF NOT EXISTS idx_words_correct_count ON words(correct_count DESC);
+      CREATE INDEX IF NOT EXISTS idx_words_rarity ON words(rarity);
+      
+      -- Composite indexes for common query patterns
+      CREATE INDEX IF NOT EXISTS idx_words_favorite_date ON words(is_favorite, date_added DESC);
+      CREATE INDEX IF NOT EXISTS idx_words_difficult_date ON words(is_marked_difficult, date_added DESC);
+      CREATE INDEX IF NOT EXISTS idx_words_text_translation ON words(text COLLATE NOCASE, translation COLLATE NOCASE);
+      
+      -- Full-text search indexes (for better search performance)
+      CREATE VIRTUAL TABLE IF NOT EXISTS words_fts USING fts5(
+        text, translation, definition, tags,
+        content='words',
+        content_rowid='rowid'
+      );
+      
+      -- Triggers to keep FTS table in sync
+      CREATE TRIGGER IF NOT EXISTS words_fts_insert AFTER INSERT ON words BEGIN
+        INSERT INTO words_fts(rowid, text, translation, definition, tags)
+        VALUES (new.rowid, new.text, new.translation, new.definition, new.tags);
+      END;
+      
+      CREATE TRIGGER IF NOT EXISTS words_fts_delete AFTER DELETE ON words BEGIN
+        INSERT INTO words_fts(words_fts, rowid, text, translation, definition, tags)
+        VALUES ('delete', old.rowid, old.text, old.translation, old.definition, old.tags);
+      END;
+      
+      CREATE TRIGGER IF NOT EXISTS words_fts_update AFTER UPDATE ON words BEGIN
+        INSERT INTO words_fts(words_fts, rowid, text, translation, definition, tags)
+        VALUES ('delete', old.rowid, old.text, old.translation, old.definition, old.tags);
+        INSERT INTO words_fts(rowid, text, translation, definition, tags)
+        VALUES (new.rowid, new.text, new.translation, new.definition, new.tags);
+      END;
+      
       CREATE INDEX IF NOT EXISTS idx_alphabet_letters_language ON alphabet_letters(language);
       CREATE INDEX IF NOT EXISTS idx_alphabet_letters_character ON alphabet_letters(character);
       CREATE INDEX IF NOT EXISTS idx_numbers_language ON numbers(language);
@@ -266,6 +315,181 @@ export class SQLiteDatabase {
       await this.rollbackTransaction();
       throw error;
     }
+  }
+
+  // Optimized query methods for words
+  async getWordsPaginated(options: {
+    limit: number;
+    offset: number;
+    searchQuery?: string;
+    category?: 'all' | 'learning' | 'mastered' | 'new';
+    onlyFavorites?: boolean;
+    dateRange?: 'all' | 'week' | 'month' | '3months' | '6months';
+    sortBy?: 'newest' | 'alphabetical' | 'progress';
+    direction?: 'asc' | 'desc';
+  }): Promise<{ words: any[]; totalCount: number; hasMore: boolean }> {
+    const db = await this.getDatabase();
+    
+    let whereConditions: string[] = [];
+    let queryParams: any[] = [];
+    let orderBy = '';
+    
+    // Search condition using FTS if available
+    if (options.searchQuery?.trim()) {
+      const searchTerm = options.searchQuery.trim();
+      // Try FTS first, fallback to LIKE
+      try {
+        whereConditions.push(`id IN (
+          SELECT rowid FROM words_fts 
+          WHERE words_fts MATCH ? 
+        )`);
+        queryParams.push(`"${searchTerm.replace(/"/g, '""')}"*`);
+      } catch {
+        // Fallback to LIKE search
+        whereConditions.push(`(
+          text LIKE ? COLLATE NOCASE OR 
+          translation LIKE ? COLLATE NOCASE OR 
+          definition LIKE ? COLLATE NOCASE
+        )`);
+        const likePattern = `%${searchTerm}%`;
+        queryParams.push(likePattern, likePattern, likePattern);
+      }
+    }
+    
+    // Category filter (placeholder - adjust based on your progress tracking)
+    if (options.category && options.category !== 'all') {
+      switch (options.category) {
+        case 'learning':
+          whereConditions.push('review_count > 0 AND correct_count < (review_count * 0.8)');
+          break;
+        case 'mastered':
+          whereConditions.push('correct_count >= (review_count * 0.8) AND review_count > 0');
+          break;
+        case 'new':
+          whereConditions.push('review_count = 0');
+          break;
+      }
+    }
+    
+    // Favorites filter
+    if (options.onlyFavorites) {
+      whereConditions.push('is_favorite = 1');
+    }
+    
+    // Date range filter
+    if (options.dateRange && options.dateRange !== 'all') {
+      const now = new Date();
+      let daysAgo = 0;
+      switch (options.dateRange) {
+        case 'week': daysAgo = 7; break;
+        case 'month': daysAgo = 30; break;
+        case '3months': daysAgo = 90; break;
+        case '6months': daysAgo = 180; break;
+      }
+      const cutoffDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+      whereConditions.push('date_added >= ?');
+      queryParams.push(cutoffDate.toISOString());
+    }
+    
+    // Sorting
+    const direction = options.direction === 'desc' ? 'DESC' : 'ASC';
+    switch (options.sortBy) {
+      case 'alphabetical':
+        orderBy = `ORDER BY text COLLATE NOCASE ${direction}`;
+        break;
+      case 'progress':
+        orderBy = `ORDER BY 
+          CASE WHEN review_count = 0 THEN 0 
+               ELSE (correct_count * 100.0 / review_count) 
+          END ${direction}, date_added DESC`;
+        break;
+      case 'newest':
+      default:
+        orderBy = `ORDER BY date_added ${direction}`;
+        break;
+    }
+    
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+    
+    // Get total count
+    const countQuery = `SELECT COUNT(*) as total FROM words ${whereClause}`;
+    const countResult = await db.getFirstAsync<{ total: number }>(countQuery, queryParams);
+    const totalCount = countResult?.total || 0;
+    
+    // Get paginated results
+    const dataQuery = `
+      SELECT * FROM words 
+      ${whereClause} 
+      ${orderBy} 
+      LIMIT ? OFFSET ?
+    `;
+    const dataParams = [...queryParams, options.limit, options.offset];
+    const words = await db.getAllAsync(dataQuery, dataParams);
+    
+    const hasMore = options.offset + options.limit < totalCount;
+    
+    return { words, totalCount, hasMore };
+  }
+
+  // Batch operations for better performance
+  async batchInsertWords(words: any[]): Promise<void> {
+    const db = await this.getDatabase();
+    
+    await this.executeWithTransaction(async () => {
+      const stmt = await db.prepareAsync(`
+        INSERT OR REPLACE INTO words (
+          id, text, definition, translation, notes, tags, pronunciation,
+          rarity, date_added, last_reviewed, review_count,
+          correct_count, is_favorite, is_marked_difficult, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `);
+      
+      try {
+        for (const word of words) {
+          await stmt.executeAsync([
+            word.id, word.text, word.definition, word.translation, word.notes,
+            JSON.stringify(word.tags), word.pronunciation || null,
+            word.rarity, word.dateAdded, word.lastReviewed || null,
+            word.reviewCount, word.correctCount, word.isFavorite ? 1 : 0,
+            word.isMarkedDifficult ? 1 : 0
+          ]);
+        }
+      } finally {
+        await stmt.finalizeAsync();
+      }
+    });
+  }
+
+  // Database maintenance
+  async optimizeDatabase(): Promise<void> {
+    const db = await this.getDatabase();
+    await db.execAsync(`
+      PRAGMA optimize;
+      PRAGMA integrity_check;
+      VACUUM;
+      ANALYZE;
+    `);
+  }
+
+  async getDatabaseStats(): Promise<{
+    wordCount: number;
+    dbSize: number;
+    indexCount: number;
+  }> {
+    const db = await this.getDatabase();
+    
+    const wordCount = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM words');
+    const dbSize = await db.getFirstAsync<{ size: number }>('PRAGMA page_count');
+    const indexCount = await db.getFirstAsync<{ count: number }>(`
+      SELECT COUNT(*) as count FROM sqlite_master 
+      WHERE type = 'index' AND name NOT LIKE 'sqlite_%'
+    `);
+    
+    return {
+      wordCount: wordCount?.count || 0,
+      dbSize: (dbSize?.size || 0) * 4096, // Page size is typically 4KB
+      indexCount: indexCount?.count || 0
+    };
   }
 }
 

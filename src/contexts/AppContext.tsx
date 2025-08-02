@@ -12,6 +12,7 @@ import {
 } from "../types";
 import storageService  from "../services/storageService";
 import PerformanceMonitor from "../utils/performanceMonitor";
+import DatabaseOptimizer from "../utils/databaseOptimizer";
 
 export enum ErrorType {
   STORAGE_INIT = 'storage_init',
@@ -379,10 +380,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadInitialData();
     
+    // Start background database optimization
+    DatabaseOptimizer.backgroundOptimize();
+    
     // Set up periodic cache cleanup to prevent memory leaks
     const cacheCleanupInterval = setInterval(() => {
       storageService.clearExpiredCache();
     }, 5 * 60 * 1000); // Clean up every 5 minutes
+    
+    // Set up periodic database optimization
+    const dbOptimizationInterval = setInterval(() => {
+      DatabaseOptimizer.optimizeIfNeeded();
+    }, 6 * 60 * 60 * 1000); // Check every 6 hours
     
     // Set up performance monitoring (only in development)
     const performanceLogInterval = setInterval(() => {
@@ -394,6 +403,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Cleanup function
     return () => {
       clearInterval(cacheCleanupInterval);
+      clearInterval(dbOptimizationInterval);
       clearInterval(performanceLogInterval);
       // Force write any pending data when component unmounts
       storageService.forceWrite().catch(console.error);
