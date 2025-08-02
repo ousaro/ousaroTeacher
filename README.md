@@ -2,7 +2,7 @@
 
 A comprehensive Japanese learning app built with React Native and Expo, designed to help users master Japanese vocabulary, Hiragana, Katakana, and numbers efficiently.
 
-![OusaroTeacher App](./assets/images/home1.jpg)
+<img src="./assets/images/home1.jpg" alt="OusaroTeacher App" width="300" />
 
 ##  Features
 
@@ -12,7 +12,7 @@ A comprehensive Japanese learning app built with React Native and Expo, designed
 - **Recent Words**: Quick access to your latest additions
 - **Favorites System**: Mark and organize your important words
 
-![Library Screen](./assets/images/library.jpg)
+<img src="./assets/images/library.jpg" alt="Library Screen" width="300" />
 
 ###  Japanese Character Learning
 - **Hiragana Mastery**: Complete Hiragana character set with pronunciations and examples
@@ -20,7 +20,7 @@ A comprehensive Japanese learning app built with React Native and Expo, designed
 - **Number System**: Japanese numerals from basic to advanced (1-10,000)
 - **Interactive Character Grid**: Touch any character to see details, pronunciation, and examples
 
-![Alphabet Learning](./assets/images/alphabetNum.jpg)
+<img src="./assets/images/alphabetNum.jpg" alt="Alphabet Learning" width="300" />
 
 ###  Practice Modes
 Multiple engaging practice modes to reinforce your learning:
@@ -37,15 +37,15 @@ Multiple engaging practice modes to reinforce your learning:
 - **Character Quiz**: Multiple choice character recognition
 - **Number Practice**: Learn Japanese counting and number systems
 
-![Practice Modes](./assets/images/practice.jpg)
+<img src="./assets/images/practice.jpg" alt="Practice Modes" width="300" />
 
-![Games](./assets/images/games.jpg)
+<img src="./assets/images/games.jpg" alt="Games" width="300" />
 
 ###  Personalization & Settings
 - **Theme Options**: Light and dark mode support
 - **Backup & Restore**: Never lose your progress with data backup
 
-![Settings](./assets/images/settings.jpg)
+<img src="./assets/images/settings.jpg" alt="Settings" width="300" />
 
 ##  Technology Stack
 
