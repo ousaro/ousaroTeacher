@@ -40,3 +40,7 @@ yarn-error.*
 android/local.properties
 
 .fake
+
+# build
+debug/
+release/
