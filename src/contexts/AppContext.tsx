@@ -408,7 +408,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Force write any pending data when component unmounts
       storageService.forceWrite().catch(console.error);
     };
-  }, []);
+  }, []); // Empty dependency array is intentional - we only want this to run once
 
   return (
     <AppContext.Provider value={{ state, dispatch, actions }}>

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -80,7 +80,7 @@ function TabNavigator() {
         component={HomeScreen}
         options={{ 
           title: "Home",
-          tabBarLabel: ({ focused, color }) => (
+          tabBarLabel: ({ focused: _focused, color }) => (
             <View style={{ alignItems: 'center' }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Home</Text>
               <Text style={{ fontSize: 9, opacity: 0.8, color }}>ホーム</Text>

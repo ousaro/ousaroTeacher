@@ -191,7 +191,7 @@ export class SQLiteDatabase {
       try {
         await this.db.getFirstAsync('SELECT 1');
         return this.db;
-      } catch (error) {
+      } catch (_error) {
         // Connection is invalid, reset and reinitialize
         this.isInitialized = false;
         this.db = null;
