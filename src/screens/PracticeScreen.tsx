@@ -6,56 +6,44 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
-import { useApp } from "../contexts/AppContext";
 import { useTheme } from "../contexts/ThemeContext";
-import {
-  generatePracticeWords,
-  shuffleArray,
-} from "../utils/helpers";
-import { Word } from "../types";
 import { useAlert } from "../contexts/AlertContext";
 import { hiraganaGroups, katakanaGroups, japaneseNumbers } from "../data/alphabetData";
 
 interface Props {
-  navigation: any;
   route?: any;
 }
 
-export default function PracticeScreen({ navigation, route }: Props) {
-  const { state } = useApp();
+
+
+export default function PracticeScreen({ route }: Props) {
   const alert = useAlert();
   const { theme } = useTheme();
 
-
-  const { words } = state;
-  const [practiceWords, setPracticeWords] = useState<Word[]>([]);
   const [currentGame, setCurrentGame] = useState<any>(null);
   const [gameState, setGameState] = useState<any>({});
   const [selectedFocus, setSelectedFocus] = useState<string | null>(null);
   const [gamesCompleted, setGamesCompleted] = useState<number>(0);
+
+  function shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
 
   // Get practice type from route params
   const practiceType = route?.params?.practiceType;
 
   // Focus types
   const getFocusTypes = () => [
-    {
-      id: "words-focus",
-      title: "Words Focus",
-      jpTitle: "単語フォーカス",
-      subtitle: "Practice vocabulary & definitions",
-      jpSubtitle: "語彙と定義の練習",
-      icon: "library-outline",
-      gradient: ["#667eea", "#764ba2"],
-      description: "Master your vocabulary with various game types",
-      jpDescription: "様々なゲームタイプで語彙をマスター",
-    },
     {
       id: "hiragana-focus",
       title: "Hiragana Focus",
@@ -216,12 +204,6 @@ export default function PracticeScreen({ navigation, route }: Props) {
   ];
 
   useEffect(() => {
-    // Generate practice words when component mounts
-    if (words.length > 0) {
-      const practice = generatePracticeWords(words, 10);
-      setPracticeWords(practice);
-    }
-
     // If practiceType is specified, start the appropriate practice mode
     if (practiceType) {
       if (practiceType === "hiragana") {
@@ -232,7 +214,7 @@ export default function PracticeScreen({ navigation, route }: Props) {
         setSelectedFocus('numbers-focus');
       }
     }
-  }, [words, practiceType]);
+  }, [practiceType]);
 
   const handleFocusSelect = (focusId: string) => {
     setSelectedFocus(focusId);
@@ -255,31 +237,10 @@ export default function PracticeScreen({ navigation, route }: Props) {
   };
 
   const startGame = (gameType: string) => {
-    if (practiceWords.length === 0 && !["hiragana-practice", "katakana-practice", "numbers-practice", "hiragana-quiz", "katakana-quiz", "numbers-quiz"].includes(gameType)) {
-      alert({
-        title: "No Words Available",
-        message: "Add some words to your vocabulary first before practicing.",
-        onConfirm: () => navigation.navigate("Library"),
-      })
-      return;
-    }
-
-    const gameWords = practiceWords.slice(0, 5); // Use 5 words per game
+    
     setCurrentGame(gameType);
 
     switch (gameType) {
-      case "multiple-choice":
-        startMultipleChoiceGame(gameWords);
-        break;
-      case "matching":
-        startMatchingGame(gameWords);
-        break;
-      case "spelling":
-        startSpellingGame(gameWords);
-        break;
-      case "word-flashcards":
-        startWordFlashcards(gameWords);
-        break;
       case "hiragana-practice":
         startHiraganaPractice();
         break;
@@ -301,72 +262,6 @@ export default function PracticeScreen({ navigation, route }: Props) {
     }
   };
 
-  const startMultipleChoiceGame = (gameWords: Word[]) => {
-    const questions = gameWords.map((word) => {
-      const wrongAnswers = shuffleArray(
-        words.filter(
-          (w) => w.id !== word.id && (w.definition || w.translation),
-        ),
-      ).slice(0, 3);
-
-      const options = shuffleArray([
-        word.definition || word.translation,
-        ...wrongAnswers.map((w) => w.definition || w.translation),
-      ]);
-
-      return {
-        word: word.text,
-        correct: word.definition || word.translation,
-        options,
-      };
-    });
-
-    setGameState({
-      questions,
-      currentIndex: 0,
-      selectedAnswer: null,
-      correctCount: 0,
-      startTime: Date.now(),
-    });
-  };
-
-  const startMatchingGame = (gameWords: Word[]) => {
-    const words = gameWords.map((w) => w.text);
-    const definitions = shuffleArray(
-      gameWords.map((w) => w.definition || w.translation),
-    );
-
-    setGameState({
-      words,
-      definitions,
-      matches: [],
-      selectedWord: null,
-      selectedDefinition: null,
-      correctCount: 0,
-      startTime: Date.now(),
-    });
-  };
-
-  const startSpellingGame = (gameWords: Word[]) => {
-    setGameState({
-      words: gameWords,
-      currentIndex: 0,
-      userInput: "",
-      correctCount: 0,
-      startTime: Date.now(),
-    });
-  };
-
-  const startWordFlashcards = (gameWords: Word[]) => {
-    setGameState({
-      words: gameWords,
-      currentIndex: 0,
-      showAnswer: false,
-      correctCount: 0,
-      startTime: Date.now(),
-    });
-  };
-
   const endGame = async () => {
     // Increment games completed counter
     const newGamesCompleted = gamesCompleted + 1;
@@ -382,593 +277,6 @@ export default function PracticeScreen({ navigation, route }: Props) {
         startGame(randomGame.id);
       }
     }
-  };
-
-  const renderMultipleChoiceGame = () => {
-    const { questions, currentIndex, selectedAnswer, correctCount, showingResult } = gameState;
-    const currentQuestion = questions[currentIndex];
-
-    if (!currentQuestion) return null;
-
-    const handleAnswerSelect = (answer: string) => {
-      if (showingResult) return; // Prevent selection during result display
-      
-      const isCorrect = answer === currentQuestion.correct;
-      
-      setGameState({ 
-        ...gameState, 
-        selectedAnswer: answer,
-        showingResult: true,
-        wasCorrect: isCorrect,
-      });
-    };
-
-    const getOptionStyle = (option: string) => {
-      if (!showingResult) {
-        return selectedAnswer === option 
-          ? { backgroundColor: theme.colors.primary }
-          : { backgroundColor: theme.colors.background };
-      }
-
-      // During result display
-      if (option === currentQuestion.correct) {
-        return { backgroundColor: '#10b981' }; // Green for correct answer
-      }
-      if (option === selectedAnswer && option !== currentQuestion.correct) {
-        return { backgroundColor: '#ef4444' }; // Red for wrong selected answer
-      }
-      return { backgroundColor: theme.colors.background };
-    };
-
-    const getOptionTextStyle = (option: string) => {
-      if (!showingResult) {
-        return selectedAnswer === option 
-          ? { color: 'white' }
-          : { color: theme.colors.text };
-      }
-
-      // During result display
-      if (option === currentQuestion.correct || 
-          (option === selectedAnswer && option !== currentQuestion.correct)) {
-        return { color: 'white' };
-      }
-      return { color: theme.colors.text };
-    };
-
-    return (
-      <View style={styles.gameContainer}>
-        <View style={styles.progressIndicator}>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${((currentIndex + 1) / questions.length) * 100}%` }
-              ]} 
-            />
-          </View>
-          <Text style={[styles.progressText, { color: theme.colors.textSecondary }]}>
-            {currentIndex + 1} of {questions.length} • {correctCount} correct
-          </Text>
-        </View>
-
-        <Animatable.View 
-          key={currentIndex}
-          animation="fadeInUp"
-          style={[styles.questionCard, { backgroundColor: theme.colors.surface }]}
-        >
-          <Text style={[styles.questionText, { color: theme.colors.text }]}>
-            What does "{currentQuestion.word}" mean?
-          </Text>
-
-          <View style={styles.optionsContainer}>
-            {currentQuestion.options.map((option: string, index: number) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => handleAnswerSelect(option)}
-                disabled={showingResult}
-                style={[
-                  styles.optionButton,
-                  getOptionStyle(option),
-                ]}
-              >
-                <Text style={[
-                  styles.optionText,
-                  getOptionTextStyle(option),
-                ]}>
-                  {option}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {showingResult && (
-            <View style={[styles.resultIndicator, { 
-              backgroundColor: gameState.wasCorrect ? '#10b981' : '#ef4444' 
-            }]}>
-              <Ionicons 
-                name={gameState.wasCorrect ? "checkmark-circle" : "close-circle"} 
-                size={24} 
-                color="white" 
-              />
-              <Text style={styles.resultText}>
-                {gameState.wasCorrect ? "Correct!" : `Incorrect! The answer is: ${currentQuestion.correct}`}
-              </Text>
-            </View>
-          )}
-
-          {showingResult && (
-            <TouchableOpacity
-              onPress={() => {
-                const newCorrectCount = correctCount + (gameState.wasCorrect ? 1 : 0);
-
-                if (currentIndex < questions.length - 1) {
-                  setGameState({
-                    ...gameState,
-                    currentIndex: currentIndex + 1,
-                    selectedAnswer: null,
-                    showingResult: false,
-                    wasCorrect: false,
-                    correctCount: newCorrectCount,
-                  });
-                } else {
-                  endGame();
-                }
-              }}
-              style={styles.nextButton}
-            >
-              <LinearGradient
-                colors={["#667eea", "#764ba2"]}
-                style={styles.buttonGradient}
-              >
-                <Text style={styles.buttonText}>
-                  {currentIndex < questions.length - 1 ? "Next Question" : "Complete Game"}
-                </Text>
-                <Ionicons name="arrow-forward" size={20} color="white" />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </Animatable.View>
-      </View>
-    );
-  };
-
-  const renderMatchingGame = () => {
-    const { words, definitions, matches, selectedWord, selectedDefinition, correctCount, showingResult, incorrectMatch } = gameState;
-
-    if (!words || !definitions) return null;
-
-    const handleWordSelect = (word: string) => {
-      if (matches.includes(word) || showingResult) return;
-      
-      if (selectedDefinition) {
-        // Check if match is correct
-        const wordIndex = practiceWords.findIndex(w => w.text === word);
-        const isCorrect = wordIndex !== -1 && 
-                         (practiceWords[wordIndex].definition === selectedDefinition ||
-                          practiceWords[wordIndex].translation === selectedDefinition);
-        
-        if (isCorrect) {
-          const newMatches = [...matches, word, selectedDefinition];
-          const newCorrectCount = correctCount + 1;
-          
-          setGameState({
-            ...gameState,
-            matches: newMatches,
-            selectedWord: null,
-            selectedDefinition: null,
-            correctCount: newCorrectCount,
-          });
-
-          if (newMatches.length === words.length * 2) {
-            setTimeout(() => endGame(), 1000);
-          }
-        } else {
-          // Show incorrect match feedback
-          setGameState({
-            ...gameState,
-            showingResult: true,
-            incorrectMatch: { word, definition: selectedDefinition },
-          });
-
-          // Auto clear after 2 seconds
-          setTimeout(() => {
-            setGameState({
-              ...gameState,
-              selectedWord: null,
-              selectedDefinition: null,
-              showingResult: false,
-              incorrectMatch: null,
-            });
-          }, 2000);
-        }
-      } else {
-        setGameState({ ...gameState, selectedWord: word });
-      }
-    };
-
-    const handleDefinitionSelect = (definition: string) => {
-      if (matches.includes(definition) || showingResult) return;
-      
-      if (selectedWord) {
-        // Check if match is correct
-        const wordIndex = practiceWords.findIndex(w => w.text === selectedWord);
-        const isCorrect = wordIndex !== -1 && 
-                         (practiceWords[wordIndex].definition === definition ||
-                          practiceWords[wordIndex].translation === definition);
-        
-        if (isCorrect) {
-          const newMatches = [...matches, selectedWord, definition];
-          const newCorrectCount = correctCount + 1;
-          
-          setGameState({
-            ...gameState,
-            matches: newMatches,
-            selectedWord: null,
-            selectedDefinition: null,
-            correctCount: newCorrectCount,
-          });
-
-          if (newMatches.length === words.length * 2) {
-            setTimeout(() => endGame(), 1000);
-          }
-        } else {
-          // Show incorrect match feedback
-          setGameState({
-            ...gameState,
-            showingResult: true,
-            incorrectMatch: { word: selectedWord, definition },
-          });
-
-          // Auto clear after 2 seconds
-          setTimeout(() => {
-            setGameState({
-              ...gameState,
-              selectedWord: null,
-              selectedDefinition: null,
-              showingResult: false,
-              incorrectMatch: null,
-            });
-          }, 2000);
-        }
-      } else {
-        setGameState({ ...gameState, selectedDefinition: definition });
-      }
-    };
-
-    return (
-      <View style={styles.gameContainer}>
-        <View style={styles.progressIndicator}>
-          <Text style={[styles.progressText, { color: theme.colors.textSecondary }]}>
-            {matches.length / 2} of {words.length} matched • {correctCount} correct
-          </Text>
-        </View>
-
-        {showingResult && incorrectMatch && (
-          <View style={[styles.resultIndicator, { backgroundColor: '#ef4444' }]}>
-            <Ionicons name="close-circle" size={24} color="white" />
-            <Text style={styles.resultText}>
-              Incorrect match! "{incorrectMatch.word}" does not match "{incorrectMatch.definition}"
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.matchingContainer}>
-          <View style={styles.matchingColumn}>
-            <Text style={[styles.columnHeader, { color: theme.colors.text }]}>Words</Text>
-            {words.map((word: string, index: number) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => handleWordSelect(word)}
-                style={[
-                  styles.matchingItem,
-                  { backgroundColor: theme.colors.surface },
-                  matches.includes(word) && styles.matchedItem,
-                  selectedWord === word && styles.selectedItem,
-                ]}
-                disabled={showingResult}
-              >
-                <Text style={[
-                  styles.matchingText,
-                  { color: theme.colors.text },
-                  (matches.includes(word) || selectedWord === word) && { color: 'white' }
-                ]}>
-                  {word}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.matchingColumn}>
-            <Text style={[styles.columnHeader, { color: theme.colors.text }]}>Definitions</Text>
-            {definitions.map((definition: string, index: number) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => handleDefinitionSelect(definition)}
-                style={[
-                  styles.matchingItem,
-                  { backgroundColor: theme.colors.surface },
-                  matches.includes(definition) && styles.matchedItem,
-                  selectedDefinition === definition && styles.selectedItem,
-                ]}
-                disabled={showingResult}
-              >
-                <Text style={[
-                  styles.matchingText,
-                  { color: theme.colors.text },
-                  (matches.includes(definition) || selectedDefinition === definition) && { color: 'white' }
-                ]}>
-                  {definition}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </View>
-    );
-  };
-
-  const renderSpellingGame = () => {
-    const { words, currentIndex, userInput, correctCount, showingResult } = gameState;
-    const currentWord = words[currentIndex];
-
-    if (!currentWord) return null;
-
-    const handleInputChange = (text: string) => {
-      if (showingResult) return; // Prevent input during result display
-      setGameState({ ...gameState, userInput: text });
-    };
-
-    const handleSubmit = () => {
-      if (showingResult || !userInput.trim()) return;
-      
-      const isCorrect = userInput.toLowerCase().trim() === currentWord.text.toLowerCase().trim();
-      
-      setGameState({
-        ...gameState,
-        showingResult: true,
-        wasCorrect: isCorrect,
-      });
-    };
-
-    return (
-      <View style={styles.gameContainer}>
-        <View style={styles.progressIndicator}>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${((currentIndex + 1) / words.length) * 100}%` }
-              ]} 
-            />
-          </View>
-          <Text style={[styles.progressText, { color: theme.colors.textSecondary }]}>
-            {currentIndex + 1} of {words.length} • {correctCount} correct
-          </Text>
-        </View>
-
-        <Animatable.View 
-          key={currentIndex}
-          animation="fadeInUp"
-          style={[styles.questionCard, { backgroundColor: theme.colors.surface }]}
-        >
-          <Text style={[styles.questionText, { color: theme.colors.text }]}>
-            Spell this word:
-          </Text>
-
-          <Text style={[styles.definitionText, { color: theme.colors.primary }]}>
-            {currentWord.definition || currentWord.translation}
-          </Text>
-
-          <TextInput
-            style={[styles.textInput, { 
-              backgroundColor: theme.colors.background,
-              color: theme.colors.text,
-              borderColor: showingResult 
-                ? (gameState.wasCorrect ? '#10b981' : '#ef4444')
-                : theme.colors.primary 
-            }]}
-            value={userInput}
-            onChangeText={handleInputChange}
-            placeholder="Type the word here... / ここに単語を入力..."
-            placeholderTextColor={theme.colors.textSecondary}
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!showingResult}
-            onSubmitEditing={handleSubmit}
-          />
-
-          {showingResult && (
-            <View style={[styles.resultIndicator, { 
-              backgroundColor: gameState.wasCorrect ? '#10b981' : '#ef4444' 
-            }]}>
-              <Ionicons 
-                name={gameState.wasCorrect ? "checkmark-circle" : "close-circle"} 
-                size={24} 
-                color="white" 
-              />
-              <Text style={styles.resultText}>
-                {gameState.wasCorrect 
-                  ? "Correct!" 
-                  : `Incorrect! The correct spelling is: ${currentWord.text}`
-                }
-              </Text>
-            </View>
-          )}
-
-          {showingResult && (
-            <TouchableOpacity
-              onPress={() => {
-                const newCorrectCount = correctCount + (gameState.wasCorrect ? 1 : 0);
-
-                if (currentIndex < words.length - 1) {
-                  setGameState({
-                    ...gameState,
-                    currentIndex: currentIndex + 1,
-                    userInput: "",
-                    showingResult: false,
-                    wasCorrect: false,
-                    correctCount: newCorrectCount,
-                  });
-                } else {
-                  endGame();
-                }
-              }}
-              style={styles.nextButton}
-            >
-              <LinearGradient
-                colors={["#667eea", "#764ba2"]}
-                style={styles.buttonGradient}
-              >
-                <Text style={styles.buttonText}>
-                  {currentIndex < words.length - 1 ? "Next Question" : "Complete Game"}
-                </Text>
-                <Ionicons name="arrow-forward" size={20} color="white" />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-
-          {userInput.trim() && !showingResult && (
-            <TouchableOpacity
-              onPress={handleSubmit}
-              style={styles.nextButton}
-            >
-              <LinearGradient
-                colors={["#667eea", "#764ba2"]}
-                style={styles.buttonGradient}
-              >
-                <Text style={styles.buttonText}>
-                  Check Spelling
-                </Text>
-                <Ionicons name="arrow-forward" size={20} color="white" />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </Animatable.View>
-      </View>
-    );
-  };
-
-  const renderWordFlashcards = () => {
-    const { words, currentIndex, showAnswer } = gameState;
-    const currentWord = words[currentIndex];
-
-    if (!currentWord) return null;
-
-    const handleNext = () => {
-      if (currentIndex < words.length - 1) {
-        setGameState({
-          ...gameState,
-          currentIndex: currentIndex + 1,
-          showAnswer: false,
-        });
-      } else {
-        // End of practice session - start next random game
-        const newGamesCompleted = gamesCompleted + 1;
-        setGamesCompleted(newGamesCompleted);
-        
-        if (selectedFocus) {
-          const availableGames = getAllGameTypes().filter(game => 
-            game.focusTypes.includes(selectedFocus)
-          );
-          if (availableGames.length > 0) {
-            const randomGame = shuffleArray(availableGames)[0];
-            startGame(randomGame.id);
-          }
-        }
-      }
-    };
-
-    return (
-      <View style={styles.gameContainer}>
-        <View style={styles.progressIndicator}>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${((currentIndex + 1) / words.length) * 100}%` }
-              ]} 
-            />
-          </View>
-          <Text style={[styles.progressText, { color: theme.colors.textSecondary }]}>
-            {currentIndex + 1} of {words.length}
-          </Text>
-        </View>
-
-        <Animatable.View 
-          key={currentIndex}
-          animation="fadeInUp"
-          style={[styles.flashcard, { backgroundColor: theme.colors.surface }]}
-        >
-          <View style={styles.cardContent}>
-            <Text style={[styles.wordDisplay, { color: theme.colors.text }]}>
-              {currentWord.text}
-            </Text>
-            
-            <View style={styles.cardDivider} />
-            
-            {showAnswer ? (
-              <Animatable.View animation="fadeIn" style={styles.answerSection}>
-                <Text style={[styles.answerLabel, { color: theme.colors.textSecondary }]}>
-                  Definition
-                </Text>
-                <Text style={[styles.answerText, { color: theme.colors.primary }]}>
-                  {currentWord.definition || currentWord.translation}
-                </Text>
-                {currentWord.example && (
-                  <Text style={[styles.exampleText, { color: theme.colors.textSecondary }]}>
-                    Example: {currentWord.example}
-                  </Text>
-                )}
-              </Animatable.View>
-            ) : (
-              <View style={styles.hiddenAnswer}>
-                <Text style={[styles.tapHint, { color: theme.colors.textSecondary }]}>
-                  Tap to reveal definition
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {!showAnswer ? (
-            <TouchableOpacity
-              onPress={() => setGameState({ ...gameState, showAnswer: true })}
-              style={styles.revealButton}
-            >
-              <LinearGradient
-                colors={["#667eea", "#764ba2"]}
-                style={styles.buttonGradient}
-              >
-                <Ionicons name="eye-outline" size={20} color="white" />
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={styles.buttonText}>Reveal Definition</Text>
-                  <Text style={styles.jpButtonText}>定義を表示</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={handleNext}
-              style={styles.revealButton}
-            >
-              <LinearGradient
-                colors={["#10b981", "#059669"]}
-                style={styles.buttonGradient}
-              >
-                <Ionicons name="arrow-forward-outline" size={20} color="white" />
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={styles.buttonText}>
-                    {currentIndex < words.length - 1 ? "Next Word" : "Complete"}
-                  </Text>
-                  <Text style={styles.jpButtonText}>
-                    {currentIndex < words.length - 1 ? "次の単語" : "完了"}
-                  </Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-        </Animatable.View>
-      </View>
-    );
   };
 
   const renderCharacterQuiz = () => {
@@ -1601,10 +909,6 @@ export default function PracticeScreen({ navigation, route }: Props) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
         >
-          {currentGame === "multiple-choice" && renderMultipleChoiceGame()}
-          {currentGame === "matching" && renderMatchingGame()}
-          {currentGame === "spelling" && renderSpellingGame()}
-          {currentGame === "word-flashcards" && renderWordFlashcards()}
           {currentGame === "hiragana-practice" && renderAlphaPractice()}
           {currentGame === "hiragana-quiz" && renderCharacterQuiz()}
           {currentGame === "katakana-practice" && renderAlphaPractice()}
@@ -1781,45 +1085,6 @@ export default function PracticeScreen({ navigation, route }: Props) {
             </>
           )}
         </View>
-
-        {/* Empty State for Words Focus */}
-        {selectedFocus === 'words-focus' && words.length === 0 && (
-          <Animatable.View animation="fadeIn" delay={800} style={styles.emptyState}>
-            <LinearGradient
-              colors={["#667eea", "#764ba2"]}
-              style={styles.emptyIconContainer}
-            >
-              <Ionicons name="library-outline" size={32} color="white" />
-            </LinearGradient>
-            <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-              Build Your Vocabulary First
-            </Text>
-            <Text style={[styles.jpEmptyTitle, { color: theme.colors.textSecondary }]}>
-              まず語彙を構築しましょう
-            </Text>
-            <Text style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}>
-              Add words to your library to unlock practice modes and start your learning journey
-            </Text>
-            <Text style={[styles.jpEmptyDescription, { color: theme.colors.textSecondary }]}>
-              ライブラリに単語を追加して練習モードをアンロックし、学習の旅を始めましょう
-            </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Library")}
-              style={styles.ctaButton}
-            >
-              <LinearGradient
-                colors={["#667eea", "#764ba2"]}
-                style={styles.buttonGradient}
-              >
-                <Ionicons name="add-outline" size={20} color="white" />
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={styles.buttonText}>Add Your First Words</Text>
-                  <Text style={[styles.buttonText, { fontSize: 12, opacity: 0.8 }]}>最初の単語を追加</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animatable.View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );

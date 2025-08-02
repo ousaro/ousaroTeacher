@@ -10,9 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useApp } from "../contexts/AppContext";
 import { useTheme } from "../contexts/ThemeContext";
-import { handleExportData, handleImportData } from "../utils";
 import { LinearGradient } from "expo-linear-gradient";
 
 interface Props {
@@ -30,8 +28,7 @@ interface SettingsItem {
 }
 
 export default function SettingsScreen({ navigation }: Props) {
-  const { actions } = useApp();
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { theme, isDark, toggleTheme } = useTheme();
 
   const settingsSections: Array<{
     title: string;
@@ -39,53 +36,23 @@ export default function SettingsScreen({ navigation }: Props) {
     items: SettingsItem[];
   }> = [
     {
-      title: "Appearance",
-      jpTitle: "外観",
+      title: "App Settings",
+      jpTitle: "アプリ設定",
       items: [
         {
           icon: "moon",
           title: "Dark Mode",
-          subtitle: "Switch between light and dark theme",
+          subtitle: "Toggle dark/light theme",
           jpTitle: "ダークモード",
-          jpSubtitle: "ライトテーマとダークテーマの切り替え",
+          jpSubtitle: "ダーク・ライトテーマの切り替え",
           rightElement: (
             <Switch
               value={isDark}
               onValueChange={toggleTheme}
-              trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.primary,
-              }}
-              thumbColor={isDark ? theme.colors.surface : "#f4f3f4"}
+              trackColor={{ false: "#767577", true: "#81b0ff" }}
+              thumbColor={isDark ? "#f5dd4b" : "#f4f3f4"}
             />
           ),
-        },
-      ],
-    },
-    {
-      title: "Data",
-      jpTitle: "データ",
-      items: [
-        {
-          icon: "download",
-          title: "Export Data",
-          subtitle: "Export your words and progress",
-          jpTitle: "データのエクスポート",
-          jpSubtitle: "単語と進捗をエクスポート",
-          onPress: async () => {
-            await handleExportData();
-          },
-        },
-        {
-          icon: "cloud-upload-outline",
-          title: "Import Data",
-          subtitle: "Restore from a backup file",
-          jpTitle: "データのインポート",
-          jpSubtitle: "バックアップファイルから復元",
-          onPress: async () => {
-            await handleImportData();
-            actions.loadInitialData();
-          },
         },
       ],
     },

@@ -18,10 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Animatable from "react-native-animatable";
 import { useTheme } from "../contexts/ThemeContext";
-import { useApp } from "../contexts/AppContext";
 import { AlphabetLetter, NumberItem, CharacterGroup } from "../types";
 import CharacterItem from "../components/CharacterItem";
-import dataOptimizer from "../utils/dataOptimization";
 import { hiraganaGroups, katakanaGroups, japaneseNumbers } from "../data/alphabetData";
 
 const { width, height } = Dimensions.get("window");
@@ -37,7 +35,6 @@ interface Props {
 
 export default function AlphabetScreen({ navigation }: Props) {
   const { theme } = useTheme();
-  const { state } = useApp();
   const [selectedItem, setSelectedItem] = useState<AlphabetLetter | NumberItem | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"hiragana" | "katakana" | "numbers">("hiragana");
@@ -81,9 +78,8 @@ export default function AlphabetScreen({ navigation }: Props) {
     
     try {
       if (activeTab === "numbers") {
-        return dataOptimizer.optimizeForMobile(getNumbersData());
+        return getNumbersData();
       }
-
       const alphabetGroups = activeTab === "hiragana" ? hiraganaGroups : katakanaGroups;
       return alphabetGroups;
     } catch (error) {
@@ -92,15 +88,24 @@ export default function AlphabetScreen({ navigation }: Props) {
     }
   }, [activeTab, isReady, getNumbersData]);
 
-  // Flatten character data for FlatList optimization with caching
+  // Flatten character data for FlatList optimization
   const flattenedData = useMemo(() => {
     if (activeTab === "numbers") {
-      return dataOptimizer.optimizeForMobile(currentData as NumberItem[]);
+      return currentData as NumberItem[];
     }
     
     const groups = currentData as CharacterGroup[];
-    const flattened = dataOptimizer.flattenCharacterGroups(groups);
-    return dataOptimizer.optimizeForMobile(flattened);
+    const flattened: AlphabetLetter[] = [];
+    
+    groups.forEach(group => {
+      group.characters.forEach(char => {
+        if (char !== null) {
+          flattened.push(char);
+        }
+      });
+    });
+    
+    return flattened;
   }, [currentData, activeTab]);
 
   // Enhanced modal open animation with reduced complexity
@@ -243,7 +248,7 @@ export default function AlphabetScreen({ navigation }: Props) {
         index={index}
         itemWidth={ITEM_WIDTH}
         onPress={handleItemPress}
-        shouldAnimate={index < 0} // Only animate first 20 items
+        shouldAnimate={index < 20} // Only animate first 20 items
       />
     );
   }, [ITEM_WIDTH, handleItemPress]);
@@ -258,8 +263,8 @@ export default function AlphabetScreen({ navigation }: Props) {
   // Key extractor for FlatList
   const keyExtractor = useCallback((item: AlphabetLetter | NumberItem) => item.id, []);
 
-  // Add loading check for theme and state
-  if (!theme || !state) {
+  // Add loading check for theme
+  if (!theme) {
     return (
       <View style={[styles.container, { backgroundColor: '#fff' }]}>
         <View style={styles.loadingContainer}>
@@ -382,12 +387,6 @@ export default function AlphabetScreen({ navigation }: Props) {
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
             Preparing characters...
-          </Text>
-        </View>
-      ) : state.isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-            Loading...
           </Text>
         </View>
       ) : flattenedData.length === 0 ? (

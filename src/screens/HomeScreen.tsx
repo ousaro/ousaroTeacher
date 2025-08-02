@@ -11,7 +11,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
-import { useApp } from "../contexts/AppContext";
 import { useTheme } from "../contexts/ThemeContext";
 
 interface Props {
@@ -19,16 +18,7 @@ interface Props {
 }
 
 export default function HomeScreen({ navigation }: Props) {
-  const { state } = useApp();
   const { theme } = useTheme();
-  const { words } = state;
-
-  const recentWords = words
-    .sort(
-      (a, b) =>
-        new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
-    )
-    .slice(0, 5);
 
   return (
     <SafeAreaView
@@ -134,52 +124,6 @@ export default function HomeScreen({ navigation }: Props) {
                 />
               </TouchableOpacity>
             </Animatable.View>
-
-            <Animatable.View
-              animation="fadeInLeft"
-              delay={700}
-              style={styles.actionRow}
-            >
-              <TouchableOpacity
-                onPress={() => navigation.navigate("Library")}
-                style={[
-                  styles.actionCard,
-                  { backgroundColor: theme.colors.surface },
-                ]}
-              >
-                <View
-                  style={[styles.actionIcon, { backgroundColor: "#4facfe" }]}
-                >
-                  <Ionicons name="library-outline" size={24} color="white" />
-                </View>
-                <View style={styles.actionContent}>
-                  <Text
-                    style={[styles.actionText, { color: theme.colors.text }]}
-                  >
-                    Library
-                  </Text>
-                  <Text style={styles.jpActionText}>
-                    ライブラリ
-                  </Text>
-                  <Text
-                    style={[
-                      styles.actionSubtext,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    Manage your words and sentences
-                  </Text>
-                  <Text style={styles.jpActionSubtext}>
-                    単語と文章を管理
-                  </Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </Animatable.View>
           </View>
         </View>
 
@@ -239,117 +183,7 @@ export default function HomeScreen({ navigation }: Props) {
             </Animatable.View>
           </View>
         </View>
-
-        {/* Empty State or Recent Words */}
-        {words.length !== 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                  Recent Words
-                </Text>
-                <Text style={styles.jpSectionTitle}>
-                  最近の単語
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={() => navigation.navigate("Library")}
-                style={[
-                  styles.viewAllButton,
-                  { backgroundColor: theme.colors.primary + "20" },
-                ]}
-              >
-                <View style={styles.viewAllTextContainer}>
-                  <Text
-                    style={[styles.viewAllText, { color: theme.colors.primary }]}
-                  >
-                    View All
-                  </Text>
-                  <Text
-                    style={[styles.jpViewAllText, { color: theme.colors.primary }]}
-                  >
-                    すべて表示
-                  </Text>
-                </View>
-                <Ionicons
-                  name="arrow-forward"
-                  size={16}
-                  color={theme.colors.primary}
-                />
-              </TouchableOpacity>
-            </View>
-            {recentWords.map((word, index) => (
-              <Animatable.View
-                key={word.id}
-                animation="fadeInUp"
-                delay={800 + index * 100}
-                style={styles.actionRow}
-              >
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate("WordDetails", { wordId: word.id })
-                  }
-                  style={[
-                    styles.actionCard,
-                    { backgroundColor: theme.colors.surface },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.actionIcon,
-                      { backgroundColor: theme.colors.primary },
-                    ]}
-                  >
-                    <Ionicons name="library" size={24} color="white" />
-                  </View>
-                  <View style={styles.actionContent}>
-                    <Text
-                      style={[styles.actionText, { color: theme.colors.text }]}
-                    >
-                      {word.text}
-                    </Text>
-                   
-                    <Text
-                        style={[
-                          styles.actionSubtext,
-                          { color: theme.colors.primary },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {word.translation}
-                      </Text>
-                     {word.definition && (
-                      <Text
-                      style={[
-                        styles.actionSubtext,
-                        { color: theme.colors.textSecondary },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {word.definition}
-                    </Text>
-                     )}
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={theme.colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              </Animatable.View>
-            ))}
-          </View>
-        )}
       </ScrollView>
-
-      {/* floating Add Word Button  always visible */}
-      <TouchableOpacity
-        onPress={() => navigation.navigate("AddWord")}
-        style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
-      >
-        <Ionicons name="add" size={32} color="white" />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }

@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import StorageService from "../services/storageService";
 
 export interface Theme {
   isDark: boolean;
@@ -84,8 +83,8 @@ export const darkTheme: Theme = {
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
   isDark: boolean;
+  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -110,32 +109,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   }, []);
 
   const loadTheme = async () => {
-    try {
-      const user = await StorageService.getUser();
-      if (user?.theme) {
-        setIsDark(user.theme === "dark");
-      }
-    } catch (error) {
-      console.error("Error loading theme:", error);
-    }
+    setIsDark(true);
   };
 
-  const toggleTheme = async () => {
-    try {
-      const newIsDark = !isDark;
-      setIsDark(newIsDark);
-      await StorageService.updateUserPreferences({
-        theme: newIsDark ? "dark" : "light"
-      });
-    } catch (error) {
-      console.error("Error saving theme:", error);
-    }
+  const toggleTheme = () => {
+    setIsDark(!isDark);
   };
 
   const theme = isDark ? darkTheme : lightTheme;
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark }}>
+    <ThemeContext.Provider value={{ theme, isDark, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

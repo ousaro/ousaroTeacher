@@ -10,17 +10,9 @@ import { RootStackParamList, TabParamList } from "../types";
 
 // Import screens
 import HomeScreen from "../screens/HomeScreen";
-import LibraryScreen from "../screens/LibraryScreen";
 import PracticeScreen from "../screens/PracticeScreen";
 import AlphabetScreen from "../screens/AlphabetScreen";
-import WordDetailsScreen from "../screens/WordDetailsScreen";
-import AddWordScreen from "../screens/AddWordScreen";
 import AboutApp from "../screens/AboutApp";
-import LibraryFiltersScreen from "../screens/LibraryFilterSceen";
-import ErrorScreen from "../screens/ErrorScreen";
-import LoadingScreen from "../screens/LoadingScreen";
-
-import { useApp } from "../contexts/AppContext";
 import SettingsScreen from "../screens/SettingsScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -38,8 +30,6 @@ function TabNavigator() {
 
           if (route.name === "Home") {
             iconName = focused ? "home" : "home-outline";
-          } else if (route.name === "Library") {
-            iconName = focused ? "library" : "library-outline";
           } else if (route.name === "Practice") {
             iconName = focused ? "game-controller" : "game-controller-outline";
           } else if (route.name === "Japanese") {
@@ -89,19 +79,6 @@ function TabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Library"
-        component={LibraryScreen}
-        options={{ 
-          title: "Library",
-          tabBarLabel: ({ color }) => (
-            <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Library</Text>
-              <Text style={{ fontSize: 9, opacity: 0.8, color }}>ライブラリ</Text>
-            </View>
-          )
-        }}
-      />
-      <Tab.Screen
         name="Practice"
         component={PracticeScreen}
         options={{ 
@@ -146,32 +123,7 @@ function TabNavigator() {
 
 export default function AppNavigator() {
   const { theme } = useTheme();
-  const { state } = useApp();
 
-  // Show loading screen while app is initializing or not initialized
-  if (state.isLoading || !state.isInitialized) {
-    return <LoadingScreen />;
-  }
-
-  // Check if there's a critical error that prevents normal operation
-  if (state.error && (
-    state.error.type === 'storage_init' || 
-    state.error.type === 'data_load' ||
-    !state.error.canRetry ||
-    state.retryAttempts >= 3
-  )) {
-    return (
-      <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen
-            name="Error"
-            component={ErrorScreen}
-            options={{ headerShown: false }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    );
-  }
 
   const initialRoute = "Main"
 
@@ -201,36 +153,12 @@ export default function AppNavigator() {
           component={TabNavigator}
           options={{ headerShown: false }}
         />
-        <Stack.Screen
-          name="WordDetails"
-          component={WordDetailsScreen}
-          options={{
-            title: "Word Details",
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="AddWord"
-          component={AddWordScreen}
-          options={{
-            title: "Add Word",
-            headerShown: false,
-          }}
-        />
 
         <Stack.Screen
           name="AboutApp"
           component={AboutApp}
           options={{
             title: "About App",
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="LibraryFilters"
-          component={LibraryFiltersScreen}
-          options={{
-            title: "Library Filters",
             headerShown: false,
           }}
         />
