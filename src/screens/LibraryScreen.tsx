@@ -9,6 +9,8 @@ import {
   TextInput,
   RefreshControl,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,6 +21,7 @@ import { ThemedButton } from "../components/ThemedComponents";
 import { Word } from "../types";
 import { FilterState } from "./LibraryFilterSceen";
 import { useAlert } from "../contexts/AlertContext";
+import { useKeyboard } from "../hooks/useKeyboard";
 import StorageService from "../services/storageService";
 
 interface Props {
@@ -29,6 +32,7 @@ export default function LibraryScreen({ navigation }: Props) {
   const { theme } = useTheme();
   const { actions } = useApp();
   const alert = useAlert();
+  const { isKeyboardVisible } = useKeyboard();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -274,258 +278,269 @@ export default function LibraryScreen({ navigation }: Props) {
         translucent
       />
 
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-        <View style={styles.headerTop}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.headerTop}>
 
-          <Ionicons
-            name="library"
-            size={24}
-            color={theme.colors.text}
-            style={{}}
-          />
-          
-          <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-              My Library
+            <Ionicons
+              name="library"
+              size={24}
+              color={theme.colors.text}
+              style={{}}
+            />
+            
+            <View style={styles.headerTextContainer}>
+              <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+                My Library
+              </Text>
+              <Text style={[styles.jpHeaderTitle, { color: theme.colors.textSecondary }]}>
+                マイライブラリ
+              </Text>
+            </View>
+            
+            <TouchableOpacity
+              onPress={() => navigation.navigate("AddWord")}
+              style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Bar */}
+          <View style={[styles.searchContainer, { backgroundColor: theme.colors.background }]}>
+            <Ionicons name="search" size={20} color={theme.colors.textSecondary} />
+            <TextInput
+              style={[styles.searchInput, { color: theme.colors.text }]}
+              placeholder="Search words... / 単語を検索..."
+              placeholderTextColor={theme.colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={clearSearch} activeOpacity={0.7}>
+                <Ionicons name="close" size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Filter and Sort Controls */}
+        <View style={[styles.controlsBar, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.controlsLeft}>
+            <Text style={[styles.resultsText, { color: theme.colors.textSecondary }]}>
+              {totalCount} words
             </Text>
-            <Text style={[styles.jpHeaderTitle, { color: theme.colors.textSecondary }]}>
-              マイライブラリ
-            </Text>
+            
+            {activeFiltersCount > 0 && (
+              <TouchableOpacity
+                onPress={clearAllFilters}
+                style={styles.clearFiltersButton}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.clearFiltersText, { color: theme.colors.primary }]}>
+                  Clear all
+                </Text>
+                <Text style={[styles.jpClearFiltersText, { color: theme.colors.primary }]}>
+                  すべてクリア
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
           
-          <TouchableOpacity
-            onPress={() => navigation.navigate("AddWord")}
-            style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
+          <View style={styles.controlsRight}>
+            <View style={styles.sortTextContainer}>
+              <Text style={[styles.sortText, { color: theme.colors.textSecondary }]}>
+                {getSortDisplayText()}
+              </Text>
+              <Text style={[styles.jpSortText, { color: theme.colors.textSecondary }]}>
+                {getSortDisplayTextJp()}
+              </Text>
+            </View>
 
-        {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: theme.colors.background }]}>
-          <Ionicons name="search" size={20} color={theme.colors.textSecondary} />
-          <TextInput
-            style={[styles.searchInput, { color: theme.colors.text }]}
-            placeholder="Search words... / 単語を検索..."
-            placeholderTextColor={theme.colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} activeOpacity={0.7}>
-              <Ionicons name="close" size={20} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Filter and Sort Controls */}
-      <View style={[styles.controlsBar, { backgroundColor: theme.colors.surface }]}>
-        <View style={styles.controlsLeft}>
-          <Text style={[styles.resultsText, { color: theme.colors.textSecondary }]}>
-            {totalCount} words
-          </Text>
-          
-          {activeFiltersCount > 0 && (
+            {/* Filter Button */}
             <TouchableOpacity
-              onPress={clearAllFilters}
-              style={styles.clearFiltersButton}
+              onPress={openFilterScreen}
+              style={[
+                styles.filterButton,
+                { 
+                  backgroundColor: activeFiltersCount > 0 ? theme.colors.primary : 'transparent',
+                  borderColor: theme.colors.primary,
+                }
+              ]}
               activeOpacity={0.7}
             >
-              <Text style={[styles.clearFiltersText, { color: theme.colors.primary }]}>
-                Clear all
-              </Text>
-              <Text style={[styles.jpClearFiltersText, { color: theme.colors.primary }]}>
-                すべてクリア
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        
-        <View style={styles.controlsRight}>
-          <View style={styles.sortTextContainer}>
-            <Text style={[styles.sortText, { color: theme.colors.textSecondary }]}>
-              {getSortDisplayText()}
-            </Text>
-            <Text style={[styles.jpSortText, { color: theme.colors.textSecondary }]}>
-              {getSortDisplayTextJp()}
-            </Text>
-          </View>
-
-          {/* Filter Button */}
-          <TouchableOpacity
-            onPress={openFilterScreen}
-            style={[
-              styles.filterButton,
-              { 
-                backgroundColor: activeFiltersCount > 0 ? theme.colors.primary : 'transparent',
-                borderColor: theme.colors.primary,
-              }
-            ]}
-            activeOpacity={0.7}
-          >
-            <Ionicons 
-              name="options" 
-              size={18} 
-              color={activeFiltersCount > 0 ? "white" : theme.colors.primary} 
-            />
-            {activeFiltersCount > 0 && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>
-                  {activeFiltersCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Active Filters Preview */}
-      {activeFiltersCount > 0 && (
-        <View style={[styles.activeFiltersBar, { backgroundColor: theme.colors.background }]}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.activeFiltersContent}
-          >
-            {filters.category !== "all" && (
-              <View style={[styles.activeFilterChip, { backgroundColor: theme.colors.primary }]}>
-                <Text style={styles.activeFilterText}>
-                  {filters.category.charAt(0).toUpperCase() + filters.category.slice(1)}
-                </Text>
-              </View>
-            )}
-            
-            {filters.onlyFavorites && (
-              <View style={[styles.activeFilterChip, { backgroundColor: "#ef4444" }]}>
-                <Text style={styles.activeFilterText}>Favorites</Text>
-              </View>
-            )}         
-            
-            {filters.dateRange !== "all" && (
-              <View style={[styles.activeFilterChip, { backgroundColor: theme.colors.primary }]}>
-                <Text style={styles.activeFilterText}>
-                  Last {filters.dateRange === "week" ? "Week" : 
-                       filters.dateRange === "month" ? "Month" :
-                       filters.dateRange === "3months" ? "3 Months" : "6 Months"}
-                </Text>
-              </View>
-            )}
-
-
-            {filters.direction === "asc" ? (
-              <View style={[styles.activeFilterChip, { backgroundColor: theme.colors.primary }]}>
-                <Text style={styles.activeFilterText}>ASC</Text>
-              </View>
-            ) : (
-              <View style={[styles.activeFilterChip, { backgroundColor: theme.colors.primary }]}>
-                <Text style={styles.activeFilterText}>DESC</Text>
-              </View>
-            )}
-
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Words List */}
-      {isEmptyState ? (
-        <View style={styles.emptyState}>
-          <Ionicons
-            name={hasActiveFilters ? "search" : "library-outline"}
-            size={48}
-            color={theme.colors.textSecondary}
-          />
-          <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-            {hasActiveFilters ? "No words found" : "No words yet"}
-          </Text>
-          <Text style={[styles.jpEmptyTitle, { color: theme.colors.textSecondary }]}>
-            {hasActiveFilters ? "単語が見つかりません" : "まだ単語がありません"}
-          </Text>
-          <Text style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}>
-            {hasActiveFilters
-              ? "Try adjusting your search or filters"
-              : "Add your first word to get started"}
-          </Text>
-          <Text style={[styles.jpEmptyDescription, { color: theme.colors.textSecondary }]}>
-            {hasActiveFilters
-              ? "検索条件やフィルタを調整してください"
-              : "最初の単語を追加して始めましょう"}
-          </Text>
-          {hasActiveFilters ? (
-            <ThemedButton
-              title="Clear Filters"
-              onPress={clearAllFilters}
-              variant="secondary"
-              size="md"
-              style={styles.emptyButton}
-            />
-          ) : (
-            <ThemedButton
-              title="Add Word"
-              onPress={() => navigation.navigate("AddWord")}
-              variant="primary"
-              size="md"
-              style={styles.emptyButton}
-            />
-          )}
-        </View>
-      ) : (
-        <FlatList
-          data={paginatedWords}
-          renderItem={renderWordCard}
-          keyExtractor={(item) => item.id}
-          style={styles.wordsList}
-          contentContainerStyle={styles.wordsContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[theme.colors.primary]}
-              tintColor={theme.colors.primary}
-            />
-          }
-          // Pagination props
-          onEndReached={handleEndReached}
-          onEndReachedThreshold={0.3}
-          ListFooterComponent={
-            isLoadingMore ? (
-              <View style={styles.loadingFooter}>
-                <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-                  Loading more...
-                </Text>
-              </View>
-            ) : hasMoreData ? (
-              <View style={styles.loadMoreContainer}>
-                <TouchableOpacity 
-                  onPress={loadMoreData}
-                  style={[styles.loadMoreButton, { borderColor: theme.colors.primary }]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.loadMoreText, { color: theme.colors.primary }]}>
-                    Load More ({totalCount - paginatedWords.length} remaining)
+              <Ionicons 
+                name="options" 
+                size={18} 
+                color={activeFiltersCount > 0 ? "white" : theme.colors.primary} 
+              />
+              {activeFiltersCount > 0 && (
+                <View style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>
+                    {activeFiltersCount}
                   </Text>
-                </TouchableOpacity>
-              </View>
-            ) : null
-          }
-          // Performance optimizations
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={20}
-          windowSize={10}
-          initialNumToRender={15}
-          updateCellsBatchingPeriod={50}
-        />
-      )}
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Active Filters Preview */}
+        {activeFiltersCount > 0 && (
+          <View style={[styles.activeFiltersBar, { backgroundColor: theme.colors.background }]}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.activeFiltersContent}
+            >
+              {filters.category !== "all" && (
+                <View style={[styles.activeFilterChip, { backgroundColor: theme.colors.primary }]}>
+                  <Text style={styles.activeFilterText}>
+                    {filters.category.charAt(0).toUpperCase() + filters.category.slice(1)}
+                  </Text>
+                </View>
+              )}
+              
+              {filters.onlyFavorites && (
+                <View style={[styles.activeFilterChip, { backgroundColor: "#ef4444" }]}>
+                  <Text style={styles.activeFilterText}>Favorites</Text>
+                </View>
+              )}         
+              
+              {filters.dateRange !== "all" && (
+                <View style={[styles.activeFilterChip, { backgroundColor: theme.colors.primary }]}>
+                  <Text style={styles.activeFilterText}>
+                    Last {filters.dateRange === "week" ? "Week" : 
+                         filters.dateRange === "month" ? "Month" :
+                         filters.dateRange === "3months" ? "3 Months" : "6 Months"}
+                  </Text>
+                </View>
+              )}
+
+
+              {filters.direction === "asc" ? (
+                <View style={[styles.activeFilterChip, { backgroundColor: theme.colors.primary }]}>
+                  <Text style={styles.activeFilterText}>ASC</Text>
+                </View>
+              ) : (
+                <View style={[styles.activeFilterChip, { backgroundColor: theme.colors.primary }]}>
+                  <Text style={styles.activeFilterText}>DESC</Text>
+                </View>
+              )}
+
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Words List */}
+        {isEmptyState ? (
+          !isKeyboardVisible && (
+            <View style={styles.emptyState}>
+              <Ionicons
+                name={hasActiveFilters ? "search" : "library-outline"}
+                size={48}
+                color={theme.colors.textSecondary}
+              />
+              <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
+                {hasActiveFilters ? "No words found" : "No words yet"}
+              </Text>
+              <Text style={[styles.jpEmptyTitle, { color: theme.colors.textSecondary }]}>
+                {hasActiveFilters ? "単語が見つかりません" : "まだ単語がありません"}
+              </Text>
+              <Text style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}>
+                {hasActiveFilters
+                  ? "Try adjusting your search or filters"
+                  : "Add your first word to get started"}
+              </Text>
+              <Text style={[styles.jpEmptyDescription, { color: theme.colors.textSecondary }]}>
+                {hasActiveFilters
+                  ? "検索条件やフィルタを調整してください"
+                  : "最初の単語を追加して始めましょう"}
+              </Text>
+              {hasActiveFilters ? (
+                <ThemedButton
+                  title="Clear Filters"
+                  onPress={clearAllFilters}
+                  variant="secondary"
+                  size="md"
+                  style={styles.emptyButton}
+                />
+              ) : (
+                <ThemedButton
+                  title="Add Word"
+                  onPress={() => navigation.navigate("AddWord")}
+                  variant="primary"
+                  size="md"
+                  style={styles.emptyButton}
+                />
+              )}
+            </View>
+          )
+        ) : (
+          <FlatList
+            data={paginatedWords}
+            renderItem={renderWordCard}
+            keyExtractor={(item) => item.id}
+            style={styles.wordsList}
+            contentContainerStyle={styles.wordsContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[theme.colors.primary]}
+                tintColor={theme.colors.primary}
+              />
+            }
+            // Pagination props
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={
+              isLoadingMore ? (
+                <View style={styles.loadingFooter}>
+                  <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+                    Loading more...
+                  </Text>
+                </View>
+              ) : hasMoreData ? (
+                <View style={styles.loadMoreContainer}>
+                  <TouchableOpacity 
+                    onPress={loadMoreData}
+                    style={[styles.loadMoreButton, { borderColor: theme.colors.primary }]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.loadMoreText, { color: theme.colors.primary }]}>
+                      Load More ({totalCount - paginatedWords.length} remaining)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null
+            }
+            // Performance optimizations
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={20}
+            windowSize={10}
+            initialNumToRender={15}
+            updateCellsBatchingPeriod={50}
+          />
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  keyboardContainer: {
     flex: 1,
   },
   header: {
