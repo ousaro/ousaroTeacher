@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Animatable from "react-native-animatable";
-import Slider from '@react-native-community/slider';
 import { useTheme } from "../contexts/ThemeContext";
 import { ThemedButton } from "../components/ThemedComponents";
 

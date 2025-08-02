@@ -4,12 +4,9 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Alert,
   StatusBar,
   StyleSheet,
-  Dimensions,
   TextInput,
-  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,7 +17,6 @@ import { useTheme } from "../contexts/ThemeContext";
 import {
   generatePracticeWords,
   shuffleArray,
-  generateId,
 } from "../utils/helpers";
 import { Word } from "../types";
 import { useAlert } from "../contexts/AlertContext";
@@ -371,10 +367,7 @@ export default function PracticeScreen({ navigation, route }: Props) {
     });
   };
 
-  const endGame = async (correctCount: number, totalQuestions: number) => {
-    const timeSpent = Math.round((Date.now() - gameState.startTime) / 1000);
-    const score = Math.round((correctCount / totalQuestions) * 100);
-
+  const endGame = async () => {
     // Increment games completed counter
     const newGamesCompleted = gamesCompleted + 1;
     setGamesCompleted(newGamesCompleted);
@@ -518,7 +511,7 @@ export default function PracticeScreen({ navigation, route }: Props) {
                     correctCount: newCorrectCount,
                   });
                 } else {
-                  endGame(newCorrectCount, questions.length);
+                  endGame();
                 }
               }}
               style={styles.nextButton}
@@ -567,7 +560,7 @@ export default function PracticeScreen({ navigation, route }: Props) {
           });
 
           if (newMatches.length === words.length * 2) {
-            setTimeout(() => endGame(newCorrectCount, words.length), 1000);
+            setTimeout(() => endGame(), 1000);
           }
         } else {
           // Show incorrect match feedback
@@ -616,7 +609,7 @@ export default function PracticeScreen({ navigation, route }: Props) {
           });
 
           if (newMatches.length === words.length * 2) {
-            setTimeout(() => endGame(newCorrectCount, words.length), 1000);
+            setTimeout(() => endGame(), 1000);
           }
         } else {
           // Show incorrect match feedback
@@ -817,7 +810,7 @@ export default function PracticeScreen({ navigation, route }: Props) {
                     correctCount: newCorrectCount,
                   });
                 } else {
-                  endGame(newCorrectCount, words.length);
+                  endGame();
                 }
               }}
               style={styles.nextButton}
@@ -1118,7 +1111,7 @@ export default function PracticeScreen({ navigation, route }: Props) {
                     correctCount: newCorrectCount,
                   });
                 } else {
-                  endGame(newCorrectCount, questions.length);
+                  endGame();
                 }
               }}
               style={styles.nextButton}

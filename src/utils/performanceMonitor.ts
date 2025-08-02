@@ -82,7 +82,6 @@ class PerformanceMonitor {
 
   // Helper method to wrap async operations
   async measureAsync<T>(operationName: string, operation: () => Promise<T>): Promise<T> {
-    const operationId = this.startOperation(operationName);
     try {
       const result = await operation();
       this.endOperation(operationName);
@@ -93,18 +92,6 @@ class PerformanceMonitor {
     }
   }
 
-  // Helper method to wrap sync operations
-  measure<T>(operationName: string, operation: () => T): T {
-    const operationId = this.startOperation(operationName);
-    try {
-      const result = operation();
-      this.endOperation(operationName);
-      return result;
-    } catch (error) {
-      this.endOperation(operationName);
-      throw error;
-    }
-  }
 
   // Memory usage tracking (if available)
   getMemoryUsage(): { used: number; total: number } | null {

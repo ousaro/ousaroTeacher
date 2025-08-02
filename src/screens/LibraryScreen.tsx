@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   StatusBar,
   TextInput,
-  Alert,
   RefreshControl,
   FlatList,
 } from "react-native";
@@ -28,8 +27,7 @@ interface Props {
 
 export default function LibraryScreen({ navigation }: Props) {
   const { theme } = useTheme();
-  const { state, actions } = useApp();
-  const { words } = state;
+  const { actions } = useApp();
   const alert = useAlert();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -130,7 +128,7 @@ export default function LibraryScreen({ navigation }: Props) {
   // Load initial data and when filters change
   useEffect(() => {
     loadWords(true);
-  }, [debouncedSearchQuery, filters]);
+  }, [debouncedSearchQuery, filters, loadWords]);
 
   // Remove the old filteredAndSortedWords memo since we're using database pagination
 
@@ -188,12 +186,6 @@ export default function LibraryScreen({ navigation }: Props) {
       loadMoreData();
     }
   }, [loadMoreData]);
-
-  // Reset pagination when filters change
-  const resetPagination = useCallback(() => {
-    setCurrentPage(1);
-    setPaginatedWords([]);
-  }, []);
 
 
   const getSortDisplayText = () => {
@@ -526,12 +518,6 @@ export default function LibraryScreen({ navigation }: Props) {
           windowSize={10}
           initialNumToRender={15}
           updateCellsBatchingPeriod={50}
-          // Remove getItemLayout if items have variable heights
-          // getItemLayout={(data, index) => ({
-          //   length: 120, // Approximate item height
-          //   offset: 120 * index,
-          //   index,
-          // })}
         />
       )}
     </SafeAreaView>

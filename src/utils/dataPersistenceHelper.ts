@@ -58,7 +58,8 @@ export const handleImportData = async () => {
     try {
       JSON.parse(importString);
     } catch (parseError) {
-      Alert.alert("Invalid File", "The selected file is not a valid JSON backup file.");
+      console.error("Invalid JSON format:", parseError);
+      Alert.alert("Invalid File", "The selected file is not a valid JSON backup file");
       return;
     }
     
@@ -107,7 +108,7 @@ export const optimizeStorage = async (): Promise<void> => {
           try {
             await FileSystem.deleteAsync(cacheDir + file);
           } catch (deleteError) {
-            console.warn("Could not delete old backup file:", file);
+            console.warn("Could not delete old backup file:", file, deleteError);
           }
         }
       }

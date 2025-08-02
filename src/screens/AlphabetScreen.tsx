@@ -94,8 +94,6 @@ export default function AlphabetScreen({ navigation }: Props) {
 
   // Flatten character data for FlatList optimization with caching
   const flattenedData = useMemo(() => {
-    const cacheKey = `flattened-${activeTab}`;
-    
     if (activeTab === "numbers") {
       return dataOptimizer.optimizeForMobile(currentData as NumberItem[]);
     }
@@ -255,7 +253,7 @@ export default function AlphabetScreen({ navigation }: Props) {
     length: ITEM_WIDTH + 8, // item width + margin
     offset: (ITEM_WIDTH + 8) * Math.floor(index / NUM_COLUMNS),
     index,
-  }), [ITEM_WIDTH, NUM_COLUMNS]);
+  }), [ITEM_WIDTH]);
 
   // Key extractor for FlatList
   const keyExtractor = useCallback((item: AlphabetLetter | NumberItem) => item.id, []);

@@ -149,7 +149,7 @@ export default function SettingsScreen({ navigation }: Props) {
               </Text>
             </View>
             <View style={styles.actionsList}>
-              {section.items.map((item, itemIndex) => (
+              {section.items.map((item) => (
                 <TouchableOpacity
                   key={item.title}
                   onPress={item.onPress}

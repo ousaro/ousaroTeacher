@@ -131,6 +131,7 @@ export default function AddWordScreen({ route, navigation }: Props) {
         });
       }
     } catch (error) {
+      console.error("Error saving word:", error);
       alert({
         title: "Error",
         message: isEditing

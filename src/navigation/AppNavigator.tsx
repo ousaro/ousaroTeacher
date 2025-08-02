@@ -93,7 +93,7 @@ function TabNavigator() {
         component={LibraryScreen}
         options={{ 
           title: "Library",
-          tabBarLabel: ({ focused, color }) => (
+          tabBarLabel: ({ color }) => (
             <View style={{ alignItems: 'center' }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Library</Text>
               <Text style={{ fontSize: 9, opacity: 0.8, color }}>ライブラリ</Text>
@@ -106,7 +106,7 @@ function TabNavigator() {
         component={PracticeScreen}
         options={{ 
           title: "Practice",
-          tabBarLabel: ({ focused, color }) => (
+          tabBarLabel: ({color }) => (
             <View style={{ alignItems: 'center' }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Practice</Text>
               <Text style={{ fontSize: 9, opacity: 0.8, color }}>練習</Text>
@@ -119,7 +119,7 @@ function TabNavigator() {
         component={AlphabetScreen}
         options={{ 
           title: "Japanese",
-          tabBarLabel: ({ focused, color }) => (
+          tabBarLabel: ({ color }) => (
             <View style={{ alignItems: 'center' }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Japanese</Text>
               <Text style={{ fontSize: 9, opacity: 0.8, color }}>日本語</Text>
@@ -132,7 +132,7 @@ function TabNavigator() {
         component={SettingsScreen}
         options={{ 
           title: "Settings",
-          tabBarLabel: ({ focused, color }) => (
+          tabBarLabel: ({ color }) => (
             <View style={{ alignItems: 'center' }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color, marginBottom: 1 }}>Settings</Text>
               <Text style={{ fontSize: 9, opacity: 0.8, color }}>設定</Text>
